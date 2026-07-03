@@ -1,0 +1,54 @@
+name: Bug report / Bug 报告
+description: Report a reproducible TGA protocol or implementation bug. / 报告可复现的 TGA 协议或实现 bug。
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please include enough structure to reproduce the accepted/rejected record.
+        请提供足够结构化的信息，以便复现 accepted / rejected record。
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary / 摘要
+      description: What went wrong? / 哪里出错了？
+    validations:
+      required: true
+  - type: textarea
+    id: task
+    attributes:
+      label: TaskSpec
+      description: Paste the task spec or minimal reproduction. / 粘贴 task spec 或最小复现。
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: AgentProposal
+      description: Paste the proposal that should have been accepted or rejected. / 粘贴应被接受或拒绝的 proposal。
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result / 预期结果
+      description: Which violation or accepted record did you expect? / 你预期哪个 violation 或 accepted record？
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result / 实际结果
+      description: What happened instead? / 实际发生了什么？
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Reproduction command / 复现命令
+      render: shell
+    validations:
+      required: true

@@ -1,0 +1,45 @@
+name: Benchmark scenario / Benchmark 场景
+description: Propose a deterministic semantic-contamination benchmark case. / 提交一个确定性的语义污染 benchmark case。
+title: "[Benchmark]: "
+labels: ["benchmark"]
+body:
+  - type: textarea
+    id: threat
+    attributes:
+      label: Threat model / 威胁模型
+      description: What contamination path does this scenario test? / 这个场景测试哪条污染路径？
+    validations:
+      required: true
+  - type: textarea
+    id: raw_request
+    attributes:
+      label: Raw request / 原始请求
+      description: The untrusted user or external text. / 不可信用户文本或外部文本。
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Candidate proposal / 候选提案
+      description: The proposal that should be accepted or rejected. / 应被接受或拒绝的 proposal。
+      render: python
+    validations:
+      required: true
+  - type: dropdown
+    id: expected
+    attributes:
+      label: Expected verdict / 预期裁决
+      options:
+        - reject
+        - accept
+        - block before child spawn
+    validations:
+      required: true
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Rationale / 理由
+      description: Why should the checker reach that verdict? / 为什么 checker 应该得到这个裁决？
+    validations:
+      required: true

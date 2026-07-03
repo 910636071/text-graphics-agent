@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use Text Graphics Agent, please cite it using this metadata."
+title: "Text Graphics Agent"
+authors:
+  - family-names: "Wang"
+    given-names: "Lijie"
+year: 2026
+type: software
+abstract: "A research prototype for semantic contamination control in disposable child-agent workflows."
+repository-code: "https://github.com/910636071/text-graphics-agent-release"
+license: "Apache-2.0"
+keywords:
+  - "AI agents"
+  - "multi-agent systems"
+  - "semantic contamination"
+  - "prompt injection"
+  - "state records"
+  - "constraint checking"
+preferred-citation:
+  type: generic
+  title: "Text Graphics Agent: A Semantic Firewall for Disposable Child-Agent Workflows"
+  authors:
+    - family-names: "Wang"
+      given-names: "Lijie"
+  year: 2026
