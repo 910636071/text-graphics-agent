@@ -31,6 +31,12 @@ understood by a mother agent, converted into a scoped `TaskSpec`, dispatched to
 disposable child agents, and then checked by deterministic rules before any
 proposal is treated as accepted state.
 
+TGA defines a **bidirectional governance protocol** between humans and AI
+agents: human intent is not treated as task authority until it is stabilized by
+the Intent Firewall into a `TaskSpec`, and AI output is not treated as trusted
+state until it passes deterministic constraint checks and becomes a
+`CheckedRecord`.
+
 In most agent frameworks, the LLM directly writes state — if it produces a
 hallucinated fact, a scope-escaping file edit, or a bypass instruction, that
 contamination becomes permanent. TGA solves this with a strict separation:

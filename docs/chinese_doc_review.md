@@ -47,6 +47,7 @@
 - `docs/provenance_artifacts_20260704.md` / `docs/provenance_artifacts_20260704.zh-CN.md` — 记录三个公开仓库的时间戳和研究链条定位，作为 provenance artifact，不写成全局优先权结论。
 - `docs/paper_draft.md` / `docs/paper_draft.zh-CN.md` 与 `docs/architecture.md` / `docs/architecture.zh-CN.md` — 新增跨轮上下文继承边界：v0.1.0 只承诺一次性任务工作流，持久化多轮协作需要未来的 `ContextAnchorResolver`。
 - `docs/implementation_risk_register_20260704.md` / `docs/implementation_risk_register_20260704.zh-CN.md` — 吸收实现层评审，把 v0.2.0 风险收束为 evidence provenance、clean acceptance benchmark、写工具 staging、语义召回、memory retention、本地 workbench server 和多模态 evidence provenance。
+- `README.md` / `README.zh-CN.md`、`docs/paper_draft.md` / `docs/paper_draft.zh-CN.md`、`docs/architecture.md` / `docs/architecture.zh-CN.md` — 新增“双向治理协议”定义：人类意图需先稳定化为 `TaskSpec`，AI 输出需先通过确定性约束成为 `CheckedRecord`。
 
 ## 2026-07-04 任务范围与公开文案收束复审
 

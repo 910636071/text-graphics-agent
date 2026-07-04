@@ -28,6 +28,12 @@ metadata, and child lifecycle. The design extends the author's earlier
 constraint-checked state-record pipeline from symbolic state construction into
 agent orchestration.
 
+Put differently, TGA defines a bidirectional governance protocol between humans
+and AI agents: human intent is not treated as task authority until it is
+stabilized by the Intent Firewall into a `TaskSpec`, and AI output is not
+treated as trusted state until it passes deterministic constraint checks and
+becomes a `CheckedRecord`.
+
 A deterministic pilot benchmark with eleven synthetic scenarios compares a
 direct-accept baseline against Text Graphics Agent. In ten intentionally
 polluted scenarios, the baseline accepts all ten polluted proposals. Text
@@ -81,6 +87,11 @@ The central thesis is:
 > In agent systems where natural language, multimodal interpretation, or user
 > claims can influence durable state, model intelligence and state authority
 > must be separated.
+
+This separation is bidirectional: the human side cannot turn raw intent into
+task authority without passing through the Intent Firewall, and the AI side
+cannot turn generated output into trusted state without passing through the
+constraint checker.
 
 Text Graphics Agent implements this as four rules:
 
