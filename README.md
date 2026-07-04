@@ -55,6 +55,26 @@ with a strict separation:
 - **Humans approve risky transitions** — live model calls, credential changes,
   and guardrail disables stop at explicit approval checkpoints.
 
+## Research Lineage
+
+TGA is the agent-platform continuation of an earlier checked-state research
+line. The related public artifacts are:
+
+| Repository | Role |
+|------------|------|
+| [`rgbd-safe-minimal`](https://github.com/910636071/rgbd-safe-minimal) | Earliest clean-room minimal symbolic pipeline: proposal -> validation -> decision. |
+| [`constraint-checked-state-records`](https://github.com/910636071/constraint-checked-state-records) | External-review artifact for normalized records, finite constraints, and checked-state reporting. |
+| [`checked-state-benchmark`](https://github.com/910636071/checked-state-benchmark) | Downstream synthetic benchmark scaffold for finite checked-state evaluation. |
+
+TGA adapts the same state-authority boundary to agent workflows:
+
+```text
+human intent -> TaskSpec -> child-agent proposal -> constraint-checked record
+```
+
+See [Public Provenance Artifacts](./docs/provenance_artifacts_20260704.md) for
+the timestamped repository lineage and its claim boundaries.
+
 ## Quick Start
 
 ```bash
