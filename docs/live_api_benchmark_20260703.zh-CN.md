@@ -10,7 +10,7 @@ Key 处理：只使用运行时环境变量；不把 key 写入持久 Git 跟踪
 
 ## 目的
 
-确定性 benchmark 证明本地约束协议。这个真实 API benchmark 检查同一套协议是否能接收真实模型 provider 输出的结构化 proposals。
+确定性 benchmark 用来验证本地约束协议。这个真实 API benchmark 检查同一套协议是否能接收真实模型 provider 输出的结构化 proposals。
 
 benchmark 跑两条路径：
 

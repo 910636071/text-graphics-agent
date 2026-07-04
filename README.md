@@ -42,9 +42,10 @@ approved facts, phrase dialogue, or propose player-facing text, but it must not
 directly author canonical game state. Game state should come from rules,
 validated records, or explicit human-approved transitions.
 
-In most agent frameworks, the LLM directly writes state — if it produces a
-hallucinated fact, a scope-escaping file edit, or a bypass instruction, that
-contamination becomes permanent. TGA solves this with a strict separation:
+In many agent workflows, the LLM is allowed to directly influence state — if it
+produces a hallucinated fact, a scope-escaping file edit, or a bypass
+instruction, that contamination can become permanent. TGA addresses this risk
+with a strict separation:
 
 - **Child agents propose** (`AgentProposal`) — they cannot write state.
 - **Constraint layer decides** (`ConstraintChecker`) — 17 deterministic checks

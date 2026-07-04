@@ -8,9 +8,9 @@ Key handling: runtime environment variable only; no key stored in files.
 
 ## Purpose
 
-The deterministic benchmark proves the local constraint protocol. This live API
-benchmark checks whether the same protocol can accept structured proposals from
-a real model provider.
+The deterministic benchmark exercises the local constraint protocol. This live
+API benchmark checks whether the same protocol can accept structured proposals
+from a real model provider.
 
 The benchmark runs two paths:
 

@@ -461,7 +461,7 @@ cheap; accepted state is expensive.
 4. The current lifecycle model records destruction but does not enforce process
    isolation.
 5. The constraint list is finite and hand-authored.
-6. The benchmark proves only closed-protocol rejection, not real-world attack
+6. The benchmark shows only closed-protocol rejection, not real-world attack
    resistance.
 7. Curated memory is untrusted and does not affect constraints, but its
    extraction logic is heuristic — more sophisticated memory curation
