@@ -44,6 +44,7 @@
 - `docs/public_launch_checklist.md` / `docs/public_launch_checklist.zh-CN.md` — 新增平台化清单项，勾选已完成项，并同步公开声明边界。
 - `docs/citation_audit_20260704.md` / `docs/citation_audit_20260704.zh-CN.md` — 记录公开网页相似性和引用补强审计，明确剩余风险和后续正式投稿前的检查要求。
 - `docs/provenance_artifacts_20260704.md` / `docs/provenance_artifacts_20260704.zh-CN.md` — 记录三个公开仓库的时间戳和研究链条定位，作为 provenance artifact，不写成全局优先权结论。
+- `docs/paper_draft.md` / `docs/paper_draft.zh-CN.md` 与 `docs/architecture.md` / `docs/architecture.zh-CN.md` — 新增跨轮上下文继承边界：v0.1.0 只承诺一次性任务工作流，持久化多轮协作需要未来的 `ContextAnchorResolver`。
 
 ## 2026-07-04 任务范围与公开文案收束复审
 

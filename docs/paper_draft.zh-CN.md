@@ -169,7 +169,7 @@ raw user text
 
 更重要的是，`GraphExecutor` 实现了 **Fail-Fast 安全熔断机制**。在传统的 Agent 图调度中，若某个上游节点的子代理输出发生逻辑越权或生成了被污染的 proposal，系统往往会继续执行下游，导致脏状态在拓扑依赖图上传播污染。在 TGA 架构下，一旦检测到任何非 Accept 的记录或执行异常，运行器将立即终止整条图管线的流动并挂起 Checkpoint，防止后续 Agent 继承脏状态，在系统级做到了安全熔断。
 
-`AsyncGraphExecutor` 变体在此基础上扩展了线程池并发：独立节点（彼此无依赖的节点）并行执行，同时保持 fail-fast 契约——第一个拒绝或错误取消当轮所有剩余 future。这允许多任务工作流在不牺牲安全保证的前提下更快完成。
+`AsyncGraphExecutor` 变体在此基础上扩展了线程池并发：独立节点（彼此无依赖的节点）并行执行，同时保持 fail-fast 契约——第一个拒绝或错误取消当轮所有剩余 future。这允许多任务工作流在保持同一 fail-fast 安全契约的前提下更快完成。
 
 ### 4.7 零依赖沙箱与 Web 仪表板
 
@@ -299,8 +299,9 @@ GitHub metadata 显示：最早 clean-room seed artifact `rgbd-safe-minimal`
 6. benchmark 只证明 closed-protocol rejection，不证明真实世界攻击抗性。
 7. 策展记忆是不可信的，不影响约束，但其提取逻辑是启发式的——更复杂的记忆策展（如矛盾检测、时序推理）留待未来工作。
 8. 公开 release 是研究原型和审查 artifact，不是生产级 agent 操作系统；持续交互质量仍需要浏览器级 UI 回归测试覆盖。
+9. 当前可信契约是一次性任务工作流。跨轮上下文继承被当作不可信记忆，而不是已验证权威。若要扩展成持久化多轮协作系统，需要在 `IntentFrame` 和 `TaskSpec` 之间加入显式的 `ContextAnchorResolver`，把"基于上一轮接受结果"这类主张与历史 `CheckedRecord` 指纹核对后，才能允许上下文继承。
 
-这些限制符合当前 artifact 边界。下一阶段应在保持同一 benchmark format 的前提下，加入更多模态对抗生成 proposals。
+这些限制符合当前 artifact 边界。下一阶段应在保持同一 benchmark format 的前提下，加入更多模态对抗生成 proposals 和跨轮 context-anchor cases。
 
 ## 8. 下一步实验
 
@@ -315,6 +316,7 @@ GitHub metadata 显示：最早 clean-room seed artifact `rgbd-safe-minimal`
 9. 为论文表格导出 JSONL checked records。
 10. 加入第二个 benchmark，对齐现有配置 UI bug-finding flow。
 11. 混合意图防火墙：在基于规则的 `IntentDecomposer` 之上增加轻量 LLM sanitizer 作为补充层。
+12. 加入面向持久化多轮协作的 `ContextAnchorResolver`：把用户关于上一轮已接受工作的主张解析成结构化 `context_anchors`，与历史 `CheckedRecord` 核对；无法证明继承关系时，要求用户澄清。
 
 ## 9. 参考文献
 

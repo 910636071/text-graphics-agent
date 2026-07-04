@@ -100,6 +100,17 @@ Pipeline 调用 `registry.select(intent_codes, goal_markers)` 选择最佳匹配
 - 最多 50 条，重复出现强化（每次 +15%）
 - 存储在 `memory.json`，跨服务器重启保留
 
+### 跨轮边界
+
+TGA v0.1.0 定义的是一次性任务工作流。子 Agent 的 accepted proposal 可以成为
+`CheckedRecord`，但后续用户对该记录的主张不会自动获得信任。除非未来架构层显式解析，
+否则跨轮继承一律当作不可信记忆处理。
+
+如果要扩展为持久化多轮协作系统，下一层架构应在 `IntentFrame` 和 `TaskSpec` 之间加入
+`ContextAnchorResolver`。它负责把"基于上一轮 auth.py 审查"这类主张解析成结构化
+`context_anchors`，再与历史 `CheckedRecord` 标识、已接受 scope 和 evidence anchors 核对；
+当依赖关系无法证明或越出范围时，要求用户澄清。
+
 ### 异步图执行器 (async_executor.py)
 
 `AsyncGraphExecutor` 使用 `ThreadPoolExecutor` 并行执行独立任务节点，同时保持 fail-fast 安全：

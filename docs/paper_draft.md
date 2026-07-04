@@ -265,8 +265,8 @@ An `AsyncGraphExecutor` variant extends this with thread-pool concurrency:
 independent nodes (those with no dependencies on each other) execute in
 parallel, while the fail-fast contract is preserved — the first rejection or
 error cancels all remaining futures in the current round. This allows
-multi-task workflows to complete faster without sacrificing the safety
-guarantee.
+multi-task workflows to complete faster while preserving the same fail-fast
+safety contract.
 
 ### 4.7 Zero-Dependency Sandboxes & Web Dashboard
 
@@ -438,9 +438,16 @@ cheap; accepted state is expensive.
 8. The public release is a research prototype and review artifact, not a
    production-ready agent operating system. Browser-level UI regression tests
    are still needed for continuous interaction quality.
+9. The trusted contract is a disposable task workflow. Cross-turn context
+   carryover is treated as untrusted memory, not as verified authority. A
+   persistent multi-turn collaboration system would need an explicit
+   `ContextAnchorResolver` between `IntentFrame` and `TaskSpec` to validate
+   claims such as "based on the previous accepted result" against prior
+   `CheckedRecord` fingerprints before allowing carryover.
 
 These limitations are acceptable for the current artifact boundary. The next
-stage should add multimodal adversarial proposals while keeping the same benchmark format.
+stage should add multimodal adversarial proposals and cross-turn context-anchor
+cases while keeping the same benchmark format.
 
 ## 8. Next Experiments
 
@@ -460,6 +467,10 @@ stage should add multimodal adversarial proposals while keeping the same benchma
 10. Add a second benchmark aligned with the existing configuration UI bug-finding flow.
 11. Hybrid intent firewall: add a lightweight LLM-based sanitizer as a
    supplementary layer to the rule-based `IntentDecomposer`.
+12. Add a `ContextAnchorResolver` for persistent multi-turn collaboration:
+    resolve user claims about prior accepted work into structured
+    `context_anchors`, verify them against previous `CheckedRecord`s, and
+    require clarification when carryover cannot be proven.
 
 ## 9. References
 

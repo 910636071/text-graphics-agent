@@ -111,6 +111,20 @@ The mother agent accumulates memory across sessions:
 - Max 50 entries, reinforced by repetition (+15% per occurrence)
 - Stored in `memory.json`, survives server restarts
 
+### Cross-Turn Boundary
+
+TGA v0.1.0 defines a disposable task workflow. A child agent's accepted
+proposal may become a `CheckedRecord`, but later user claims about that record
+are not automatically trusted. Cross-turn carryover is treated as untrusted
+memory unless a future architecture layer explicitly resolves it.
+
+For a persistent multi-turn collaboration system, the next architectural layer
+should be a `ContextAnchorResolver` placed between `IntentFrame` and `TaskSpec`.
+Its job would be to convert claims such as "based on the previous auth.py
+review" into structured `context_anchors`, verify them against prior
+`CheckedRecord` identifiers, accepted scopes, and evidence anchors, and require
+clarification when the claimed dependency is unresolved or out of scope.
+
 ### Async Graph Executor (async_executor.py)
 
 `AsyncGraphExecutor` runs independent task nodes in parallel using
