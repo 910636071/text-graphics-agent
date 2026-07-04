@@ -13,6 +13,10 @@
 - Microsoft Agent Framework: https://github.com/microsoft/agent-framework
 - AutoGen legacy repository: https://github.com/microsoft/autogen
 - OpenAI Agents SDK: https://github.com/openai/openai-agents-python
+- NVIDIA NeMo Guardrails: https://docs.nvidia.com/nemo/guardrails/about-nemo-guardrails-library/overview
+- Guardrails AI: https://pypi.org/project/guardrails-ai/
+- Meta Llama Guard: https://ai.meta.com/research/publications/llama-guard-llm-based-input-output-safeguard-for-human-ai-conversations/
+- Meta LlamaFirewall: https://ai.meta.com/research/publications/llamafirewall-an-open-source-guardrail-system-for-building-secure-ai-agents/
 
 ## 吸收
 
@@ -47,28 +51,28 @@
 为了明确本项目（Text Graphics Agent, TGA）在 LLM 安全领域的学术和技术定位，我们对当前业界的 LLM 安全与 Guardrail 框架进行了深入调研：
 
 1. **NVIDIA NeMo Guardrails**
-   - **核心原理**：使用专门的行为编程语言 **Colang** 定义状态机。Rails 可以在 LLM 的输入、输出和对话流之间强行设定流转限制。
+   - **核心原理**：使用 YAML 配置和 **Colang** flows 定义 programmable rails。Rails 可以在 LLM 的输入、输出、对话流和工具路径上增加控制逻辑。
    - **主要用途**：防止对话跑题、控制多轮对话的行为逻辑、限制特定工具的调用路径。
-   - **TGA 的不同之处**：NeMo Guardrails 专注于“对话流管理和规则路由”，但 LLM 仍作为权威状态的直接生成器。而 TGA 贯彻了 **“智能与权力解耦（Authority Separation）”** 的设计——子代理仅能“提案（Propose）”，最终的账本状态接受完全交由确定性的 `Constraint` 链条裁决。
+   - **TGA 的不同之处**：NeMo Guardrails 为 LLM 应用提供 programmable rails，但默认并不施加 TGA 这种 child-proposal-to-checked-record 权威模型。TGA 贯彻 **“智能与权力解耦（Authority Separation）”**——子代理仅能“提案（Propose）”，最终的账本状态接受交由确定性的 `Constraint` 链条裁决。
 
 2. **Guardrails AI**
-   - **核心原理**：定义结构化 Schema（通常结合 Pydantic）并配置 Validators，对 LLM 输出内容的结构、质量（如幻觉、PII 泄露、毒性等）进行静态或动态审查，并在检测到错误时提供重试 (Re-ask) 机制。
+   - **核心原理**：通过 input/output guards、validators，以及 schema / Pydantic 约束进行结构化数据生成和验证。
    - **主要用途**：保证输出的数据格式（如强制 JSON 格式化）和内容的合规度。
-   - **TGA 的不同之处**：Guardrails AI 关注于“内容解析与格式验证（内容级纠错）”。而 TGA 针对的是系统架构层面的“防污染”。TGA 甚至限制子代理只接受 Sanitized TaskSpec（隐藏了原始用户输入），从而阻断了由于直接用户话语带偏而诱导子代理越权提案的漏洞。
+   - **TGA 的不同之处**：Guardrails AI 主要验证模型输入/输出和结构化数据。TGA 工作在编排边界：子 agent 的上下文被收窄到 sanitized `TaskSpec`，子 agent 只能提交 proposal，再进入确定性 record checking。
 
-3. **Llama Guard**
-   - **核心原理**：Meta 微调的专属大语言安全分类模型，对提示词与响应进行安全分类评判（Safe/Unsafe + 违规类别）。
-   - **主要用途**：输入/输出的内容审核（Content Moderation）。
-   - **TGA 的不同之处**：Llama Guard 依赖额外模型的推理开销（延迟高），属于基于分类模型的安全判定（无物理隔离）。TGA 是一个不依赖外部大模型的、极其轻量的本地有限状态检查防火墙，专为 Disposable Agent 编排的工作流提供隔离边界。
+3. **Meta Llama Guard / LlamaFirewall**
+   - **核心原理**：Llama Guard 用于 prompt/response 的模型化内容审核；LlamaFirewall 面向 prompt injection、agent misalignment 和 insecure code 等 agent 风险提供 guardrail monitor。
+   - **主要用途**：内容安全和 agent security monitoring。
+   - **TGA 的不同之处**：Meta 工具增加的是模型化或 monitor-based 的安全层。TGA 是零依赖的确定性 record gate，专门用于一次性子 agent 编排中的状态入账保护。
 
-| 维度 | TGA (本项目) | NVIDIA NeMo Guardrails | Guardrails AI | Meta Llama Guard |
+| 维度 | TGA (本项目) | NVIDIA NeMo Guardrails | Guardrails AI | Meta Llama Guard / LlamaFirewall |
 | :--- | :--- | :--- | :--- | :--- |
-| **主要定位** | 一次性子代理流的**物理状态隔离防火墙** | 对话流转与工具路径的**编程状态机** | 结构化输出的**内容/格式校验器** | 输入/输出的**安全内容分类模型** |
-| **核心机制** | 意图解耦 (Intent Firewall) + 模块化 Constraint 账本拦截 | Colang 编程定义对话 Rails | 带有 Validators 的 XML/Schema 校验 | Llama 专属微调分类模型 |
-| **原始输入屏蔽** | **支持** (子代理物理上接收不到 raw request，仅拿 clean TaskSpec) | 不支持 (模型直接暴露在 raw prompt 下) | 不支持 (模型直接暴露在 raw prompt 下) | 不支持 (仅对 raw text 进行分类检测) |
-| **权力分离 (Authority)** | **支持** (Children Propose, Records Decide) | 不支持 (模型仍是直接状态写入者) | 不支持 (模型仍是直接状态写入者) | 不支持 (仅进行 Yes/No 安全检测) |
-| **拓扑图链式熔断** | **支持** (基于 GraphExecutor top-ready 熔断) | 不支持 | 不支持 | 不支持 |
-| **运行时开销** | **极轻量** (纯 Python 标准库规则检查) | 中等 (需要 Colang 运行时和流转换) | 中等 (XML 解析与 validators 重试) | 较高 (依赖额外的微调大模型推理) |
+| **主要定位** | 一次性子代理流的**状态隔离防火墙** | LLM 应用的 **programmable rails** | **输入/输出验证** 与结构化生成 | **内容安全 / agent security monitoring** |
+| **核心机制** | 意图解耦 (Intent Firewall) + 模块化 Constraint 账本拦截 | YAML + Colang flows + guardrail APIs | Validators + schema/Pydantic + Guardrails Hub | 安全分类器 / agent guardrail monitor |
+| **子任务原始输入屏蔽** | **支持** (子 agent 只接收 sanitized TaskSpec) | 不是默认抽象 | 不是默认抽象 | 不是默认抽象 |
+| **权力分离 (Authority)** | **支持** (Children Propose, Records Decide) | 不是核心契约 | 不是核心契约 | 不是核心契约 |
+| **拓扑图链式熔断** | **支持** (基于 GraphExecutor top-ready 熔断) | 取决于框架集成 | 取决于框架集成 | 取决于 monitor 配置 |
+| **运行时开销** | **极轻量** (纯 Python 标准库规则检查) | 取决于 rails 和 runtime | 取决于 validators 和 re-ask 策略 | 取决于 scanner / model 配置 |
 
 ## 已实现的平台特性：图执行引擎 (`GraphExecutor`)
 

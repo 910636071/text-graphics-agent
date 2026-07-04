@@ -30,11 +30,13 @@ LLM agent 模糊了几组边界：
 
 Prompt injection 研究已经说明，LLM 集成应用可能混淆外部数据和可执行指令。Greshake 等人描述了 indirect prompt injection 如何利用检索或处理第三方文本的应用。更新的 agent hallucination survey 把 agent 失败视为 pipeline failure，可能发生在 reasoning、execution、perception、memory 和 communication 阶段。多 agent survey 也强调 profiles、perception、self-action、interaction 和 evolution 是 LLM-based multi-agent systems 的核心 workflow。
 
+近期工作也在 shared-state agent 语境中使用 contamination 语言。Yang 等人研究了 shared-state LLM agents 中的 unintentional cross-user contamination，说明良性交互产生的 scope-bound artifact 也可能持久化，并在后续用户边界中被错误复用。Cai 等人分析了 subagent spawn 和 inheritance 风险，包括 memory inheritance、resource control、post-spawn stale state 和 termination authority。TGA 的范围比这些研究更窄：它是一个小型 artifact，用于把一次性子 agent 工作流中的 proposal-to-record 边界显式化。
+
 这里缺失的系统问题不只是"agent 能不能产出正确答案"。还包括：
 
 > 当 agent 错误时，错误语义对象会在哪里进入持久状态？我们如何阻止它被后续 agent 继承？
 
-本文把这种风险称为语义污染。
+本文在本地语境中把这种 proposal-to-state failure surface 称为"语义污染"。
 
 ## 2. 论点
 
@@ -57,7 +59,7 @@ Text Graphics Agent 用四条规则实现这一点：
 
 LangGraph 是图导向、长运行、有状态 agent workflow 的典型开源例子，包含 checkpoint 和 human-review 概念。CrewAI 把自主 "Crews" 和事件驱动 "Flows" 分开，并具备显式 role、tool、task 和 control-plane 思路。Microsoft Agent Framework 和 OpenAI Agents SDK 也代表了生产方向：显式 workflow primitives、tracing 和可部署 agent 系统。
 
-在 LLM 安全与边界防御方面，现有的 Guardrail 方法主要分为三类：(1) **NVIDIA NeMo Guardrails** 采用 Colang 行为编程限制多轮对话的流动与工具路由；(2) **Guardrails AI** 专注于结合 XML-like schema 对模型输出进行静态/动态内容纠错与重问；(3) **Meta Llama Guard** 依托微调分类模型执行针对输入/输出文本的分类审查。与之不同，Text Graphics Agent (TGA) 专注于子代理编排中的状态防污染，采用"物理隐藏原始输入"与"智能与权力解耦（仅提供提案，完全由确定性 Constraint 裁决）"的机制，保障了持久状态边界的完整性。
+在 LLM 安全与边界防御方面，现有的 Guardrail 方法主要分为三类：(1) **NVIDIA NeMo Guardrails** 通过 YAML 配置和 Colang flows 为 LLM 应用增加 programmable rails；(2) **Guardrails AI** 通过 validators 和 schema 运行 input/output guards，并辅助生成结构化数据；(3) **Meta Llama Guard / LlamaFirewall** 通过模型化输入/输出分类或 agent guardrail monitor 处理安全风险。与之不同，Text Graphics Agent (TGA) 关注另一个边界：子 agent 输出的 proposal 必须经过确定性 record constraints，才能成为 accepted state。
 
 这里的贡献更窄：
 
@@ -313,6 +315,12 @@ IntentFrame -> TaskSpec -> SpecialistProfile -> AgentProposal
 - Xixun Lin et al. "LLM-based Agents Suffer from Hallucinations: A Survey of Taxonomy, Methods, and Directions." https://arxiv.org/html/2509.18970v1
 - Xinyi Li et al. "A survey on LLM-based multi-agent systems: workflow, infrastructure, and challenges." https://link.springer.com/article/10.1007/s44336-024-00009-2
 - "Design Patterns for Securing LLM Agents against Prompt Injections." https://arxiv.org/html/2506.08837v1
+- Tiankai Yang et al. "No Attacker Needed: Unintentional Cross-User Contamination in Shared-State LLM Agents." arXiv:2604.01350. https://arxiv.org/abs/2604.01350
+- Ziwen Cai, Yihe Zhang, and Xiali Hei. "When Child Inherits: Modeling and Exploiting Subagent Spawn in Multi-Agent Networks." arXiv:2605.08460. https://arxiv.org/abs/2605.08460
+- NVIDIA NeMo Guardrails documentation. https://docs.nvidia.com/nemo/guardrails/about-nemo-guardrails-library/overview
+- Guardrails AI documentation / package page. https://pypi.org/project/guardrails-ai/
+- Hakan Inan et al. "Llama Guard: LLM-based Input-Output Safeguard for Human-AI Conversations." https://ai.meta.com/research/publications/llama-guard-llm-based-input-output-safeguard-for-human-ai-conversations/
+- Sahana Chennabasappa et al. "LlamaFirewall: An open source guardrail system for building secure AI agents." https://ai.meta.com/research/publications/llamafirewall-an-open-source-guardrail-system-for-building-secure-ai-agents/
 - LangGraph repository. https://github.com/langchain-ai/langgraph
 - CrewAI repository. https://github.com/crewAIInc/crewAI
 - Microsoft Agent Framework repository. https://github.com/microsoft/agent-framework

@@ -12,6 +12,10 @@ frameworks, and what it intentionally rejects for this project.
 - Microsoft Agent Framework: https://github.com/microsoft/agent-framework
 - AutoGen legacy repository: https://github.com/microsoft/autogen
 - OpenAI Agents SDK: https://github.com/openai/openai-agents-python
+- NVIDIA NeMo Guardrails: https://docs.nvidia.com/nemo/guardrails/about-nemo-guardrails-library/overview
+- Guardrails AI: https://pypi.org/project/guardrails-ai/
+- Meta Llama Guard: https://ai.meta.com/research/publications/llama-guard-llm-based-input-output-safeguard-for-human-ai-conversations/
+- Meta LlamaFirewall: https://ai.meta.com/research/publications/llamafirewall-an-open-source-guardrail-system-for-building-secure-ai-agents/
 
 ## Absorbed
 
@@ -60,28 +64,28 @@ frameworks, and what it intentionally rejects for this project.
 To contextualize the academic and technical positioning of the Text Graphics Agent (TGA), we provide a comprehensive comparison with prominent LLM safety and guardrail frameworks in the current ecosystem:
 
 1. **NVIDIA NeMo Guardrails**
-   - **Approach**: Programmatic control using a specialized state-machine language called **Colang** to guide conversation flows and restrict tool usage paths.
+   - **Approach**: Programmatic control using YAML configuration and **Colang** flows to guide conversation flows, rails, and tool execution paths.
    - **Focus**: Dialogue flow constraint and off-topic prevention.
-   - **TGA Difference**: While NeMo restricts the dialogue flow, the LLM itself remains the direct author of persistent states. TGA decouples intelligence from authority entirely (**"Authority Separation"**)—disposable children can only *propose* state entries, which must pass the immutable `Constraint` pipeline to be *accepted* into the ledger.
+   - **TGA Difference**: NeMo provides programmable rails around LLM applications, but it does not by default impose TGA's child-proposal-to-checked-record authority model. TGA decouples intelligence from authority (**"Authority Separation"**)—disposable children can only *propose* state entries, which must pass the immutable `Constraint` pipeline to be *accepted* into the ledger.
 
 2. **Guardrails AI**
-   - **Approach**: Schema-based validation using Pydantic models to assert formatting constraints (e.g. JSON output validation) and run content validators (toxic speech, hallucinations, PII leakage).
+   - **Approach**: Input/output guards, validators, and schema/Pydantic-based structured-data generation.
    - **Focus**: Formatting reliability, validation, and automated re-asking on failure.
-   - **TGA Difference**: Guardrails AI operates primarily as a content-level parser. TGA operates as a system-level firewall. For example, TGA physics-gates the child agent's context by sanitizing raw user inputs entirely out of the `TaskSpec`, cutting off direct prompt injection propagation.
+   - **TGA Difference**: Guardrails AI primarily validates model inputs/outputs and structured data. TGA operates at the orchestration boundary: the child agent's context is narrowed to a sanitized `TaskSpec`, and the child can only submit a proposal for deterministic record checking.
 
-3. **Meta Llama Guard**
-   - **Approach**: Model-based content moderation using a dedicated fine-tuned classification LLM to label inputs and outputs as safe/unsafe based on a taxonomy of risk.
-   - **Focus**: Natural language content moderation.
-   - **TGA Difference**: Llama Guard introduces significant inference latency and depends on probabilistic model judgments. TGA is a zero-dependency, lightweight, deterministic rule-based validator designed specifically for state entry protection in multi-agent orchestration.
+3. **Meta Llama Guard / LlamaFirewall**
+   - **Approach**: Model-based content moderation for prompts/responses (Llama Guard) and a guardrail framework for agent risks such as prompt injection, agent misalignment, and insecure code (LlamaFirewall).
+   - **Focus**: Content safety and agent security monitoring.
+   - **TGA Difference**: Meta's tools add model-based or monitor-based safety layers. TGA is a zero-dependency deterministic record gate designed specifically for state entry protection in disposable child-agent orchestration.
 
-| Dimension | TGA (This Project) | NVIDIA NeMo Guardrails | Guardrails AI | Meta Llama Guard |
+| Dimension | TGA (This Project) | NVIDIA NeMo Guardrails | Guardrails AI | Meta Llama Guard / LlamaFirewall |
 | :--- | :--- | :--- | :--- | :--- |
-| **Primary Focus** | **State isolation firewall** for disposable workflows | **Programmable state-machine** for dialogue flows | **Content/format validator** for structured output | **Content safety classifier** for moderation |
-| **Mechanism** | Intent Firewall + Pluggable Constraints Ledger | Colang behavioral state files | Pydantic Schema + Validator Hub | Fine-tuned classifiers (model-based) |
-| **Raw Input Shielding**| **Yes** (Children receive only Sanitized TaskSpec) | No (LLM is exposed directly to raw prompt) | No (LLM is exposed directly to raw prompt) | No (Text classified as-is) |
-| **Authority Separation**| **Yes** (Children propose, records decide) | No (LLM remains the direct state writer) | No (LLM remains the direct state writer) | No (Classification-only) |
-| **Graph Chain Abort** | **Yes** (Topology execution via GraphExecutor) | No | No | No |
-| **Runtime Overhead** | **Very Lightweight** (Python stdlib rules) | Moderate (Colang runtime overhead) | Moderate (XML parsing and re-ask loops) | High (Requires extra LLM inference calls) |
+| **Primary Focus** | **State isolation firewall** for disposable workflows | **Programmable rails** for LLM applications | **Input/output validation** and structured generation | **Content safety / agent security monitoring** |
+| **Mechanism** | Intent Firewall + Pluggable Constraints Ledger | YAML + Colang flows + guardrail APIs | Validators + schema/Pydantic + Guardrails Hub | Safety classifier / agent guardrail monitor |
+| **Raw Input Shielding for Child Tasks**| **Yes** (children receive only sanitized TaskSpec) | Not the default abstraction | Not the default abstraction | Not the default abstraction |
+| **Authority Separation**| **Yes** (children propose, records decide) | Not the core contract | Not the core contract | Not the core contract |
+| **Graph Chain Abort** | **Yes** (topology execution via GraphExecutor) | Framework-dependent | Framework-dependent | Monitor-dependent |
+| **Runtime Overhead** | **Very lightweight** (Python stdlib rules) | Depends on rails and runtime | Depends on validators and re-ask policy | Depends on scanner/model configuration |
 
 ## Implemented Platform Feature: Graph Executor (`GraphExecutor`)
 

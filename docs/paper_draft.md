@@ -56,13 +56,23 @@ memory, and communication. Multi-agent surveys likewise emphasize profiles,
 perception, self-action, interaction, and evolution as the core workflow of
 LLM-based multi-agent systems.
 
+Recent work also uses contamination language for shared-state agents. Yang et
+al. study unintentional cross-user contamination in shared-state LLM agents and
+show that benign interactions can persist and later be misapplied across user
+boundaries. Cai et al. analyze subagent spawn and inheritance risks, including
+memory inheritance, weak resource control, stale post-spawn state, and improper
+termination authority. TGA is narrower than those studies: it is a small
+artifact that makes the proposal-to-record boundary explicit inside a disposable
+child-agent workflow.
+
 The missing systems question is not only "can an agent produce a correct
 answer?" It is also:
 
 > When an agent is wrong, where can the wrong semantic object enter durable
 > state, and how do we stop it from being inherited by later agents?
 
-This draft calls that risk semantic contamination.
+This draft uses "semantic contamination" as the local name for that
+proposal-to-state failure surface.
 
 ## 2. Thesis
 
@@ -98,7 +108,15 @@ tool, task, and control-plane ideas. Microsoft Agent Framework and OpenAI
 Agents SDK also represent the production trend toward explicit workflow
 primitives, tracing, and deployable agent systems.
 
-In terms of LLM security and boundary defense, existing guardrail approaches fall into three main patterns: (1) **NVIDIA NeMo Guardrails**, which uses Colang behavioral programming to constrain dialogue flows and tool execution paths; (2) **Guardrails AI**, which relies on XML-like schema and Pydantic validators to perform content verification and re-ask loops; and (3) **Meta Llama Guard**, which uses a dedicated fine-tuned safety classifier to moderation prompts and outputs. In contrast, the Text Graphics Agent (TGA) focuses on preventing state contamination in multi-agent orchestration by physically shielding the raw user request and enforcing strict separation of authority (where children propose and deterministic constraints decide), ensuring state integrity.
+In terms of LLM security and boundary defense, existing guardrail approaches
+fall into three main patterns: (1) **NVIDIA NeMo Guardrails**, which uses YAML
+configuration and Colang flows to add programmable rails around LLM
+applications; (2) **Guardrails AI**, which runs input/output guards and helps
+generate structured data using validators and schemas; and (3) **Meta Llama
+Guard / LlamaFirewall**, which use model-based input/output classification or
+agent guardrail monitors. In contrast, Text Graphics Agent (TGA) focuses on a
+different boundary: preventing proposed child-agent outputs from becoming
+accepted state unless they pass deterministic record constraints.
 
 The contribution here is narrower:
 
@@ -440,6 +458,12 @@ stage should add multimodal adversarial proposals while keeping the same benchma
 - Xixun Lin et al. "LLM-based Agents Suffer from Hallucinations: A Survey of Taxonomy, Methods, and Directions." https://arxiv.org/html/2509.18970v1
 - Xinyi Li et al. "A survey on LLM-based multi-agent systems: workflow, infrastructure, and challenges." https://link.springer.com/article/10.1007/s44336-024-00009-2
 - "Design Patterns for Securing LLM Agents against Prompt Injections." https://arxiv.org/html/2506.08837v1
+- Tiankai Yang et al. "No Attacker Needed: Unintentional Cross-User Contamination in Shared-State LLM Agents." arXiv:2604.01350. https://arxiv.org/abs/2604.01350
+- Ziwen Cai, Yihe Zhang, and Xiali Hei. "When Child Inherits: Modeling and Exploiting Subagent Spawn in Multi-Agent Networks." arXiv:2605.08460. https://arxiv.org/abs/2605.08460
+- NVIDIA NeMo Guardrails documentation. https://docs.nvidia.com/nemo/guardrails/about-nemo-guardrails-library/overview
+- Guardrails AI documentation / package page. https://pypi.org/project/guardrails-ai/
+- Hakan Inan et al. "Llama Guard: LLM-based Input-Output Safeguard for Human-AI Conversations." https://ai.meta.com/research/publications/llama-guard-llm-based-input-output-safeguard-for-human-ai-conversations/
+- Sahana Chennabasappa et al. "LlamaFirewall: An open source guardrail system for building secure AI agents." https://ai.meta.com/research/publications/llamafirewall-an-open-source-guardrail-system-for-building-secure-ai-agents/
 - LangGraph repository. https://github.com/langchain-ai/langgraph
 - CrewAI repository. https://github.com/crewAIInc/crewAI
 - Microsoft Agent Framework repository. https://github.com/microsoft/agent-framework

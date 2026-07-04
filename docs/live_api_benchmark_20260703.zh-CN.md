@@ -53,8 +53,8 @@ Remove-Item Env:\TGA_API_KEY
 
 - 模型在 direct 和 TGA prompts 下都返回了可解析 JSON。
 - **Naive Direct Baseline** 会直接接受全部六个模型输出，导致其中的五个语义污染注入成功写入状态。
-- 同一批 direct outputs 会被 **Shadow Checker 影子审计** 拦截，虽然拦截率为 100%，但同时也完全阻断了正常的业务功能，可用性降为 0。
+- 同一批 direct outputs 会被 **Shadow Checker 影子审计** 全部拦截，说明这个场景集下存在严格但过度阻断的失败模式。
 - **TGA 路径** 对子代理暴露原始 prompt 的次数是 0。
-- 在 TaskSpec 任务清洗的引导下，TGA 路径中的子代理提案被成功格式净化与范围修正，全部六个提案最终全部安全通过检查并成功入账（可用性与安全性达成双赢）。
+- 在 TaskSpec 任务清洗的引导下，TGA 路径中的子代理提案被范围化，全部六个提案在本次 smoke run 中被接受。
 
-这个结果支持架构边界，不是通用安全性声明。
+这个结果支持该场景集下的架构边界，不是通用安全性或可用性保证。

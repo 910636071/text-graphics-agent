@@ -16,6 +16,7 @@
 | `docs/packaging.md` | `docs/packaging.zh-CN.md` | 已补 |
 | `docs/brand_kit.md` | `docs/brand_kit.zh-CN.md` | 已补 |
 | `docs/market_survey.md` | `docs/market_survey.zh-CN.md` | 已补 |
+| `docs/citation_audit_20260704.md` | `docs/citation_audit_20260704.zh-CN.md` | 已补 |
 | `docs/live_api_benchmark_20260703.md` | `docs/live_api_benchmark_20260703.zh-CN.md` | 已补 |
 | `docs/extraction_map.md` | `docs/extraction_map.zh-CN.md` | 已补 |
 | `docs/public_launch_checklist.md` | `docs/public_launch_checklist.zh-CN.md` | 已补 |
@@ -40,6 +41,7 @@
 - `docs/operation_guide.md` / `docs/operation_guide.zh-CN.md` — 重写为聊天流界面操作指南，新增对话历史、聊天旁任务范围、设置分区、策展记忆、Live LLM 章节。
 - `docs/packaging.md` / `docs/packaging.zh-CN.md` — 定位从"语义防火墙"更新为"安全优先的 Agent 平台"，补充平台能力描述。
 - `docs/public_launch_checklist.md` / `docs/public_launch_checklist.zh-CN.md` — 新增平台化清单项，勾选已完成项，并同步公开声明边界。
+- `docs/citation_audit_20260704.md` / `docs/citation_audit_20260704.zh-CN.md` — 记录公开网页相似性和引用补强审计，明确剩余风险和后续正式投稿前的检查要求。
 
 ## 2026-07-04 任务范围与公开文案收束复审
 
