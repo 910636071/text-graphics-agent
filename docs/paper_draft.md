@@ -471,6 +471,12 @@ cases while keeping the same benchmark format.
     resolve user claims about prior accepted work into structured
     `context_anchors`, verify them against previous `CheckedRecord`s, and
     require clarification when carryover cannot be proven.
+13. Track v0.2.0 hardening items in
+    [implementation_risk_register_20260704.md](./implementation_risk_register_20260704.md):
+    evidence provenance, clean-acceptance benchmarks, transactional staging
+    before write tools, semantic recall as a non-authoritative hint layer,
+    turn/event-aware memory retention, local workbench server boundaries, and
+    multimodal evidence provenance.
 
 ## 9. References
 

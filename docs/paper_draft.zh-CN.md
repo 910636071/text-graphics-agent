@@ -317,6 +317,7 @@ GitHub metadata 显示：最早 clean-room seed artifact `rgbd-safe-minimal`
 10. 加入第二个 benchmark，对齐现有配置 UI bug-finding flow。
 11. 混合意图防火墙：在基于规则的 `IntentDecomposer` 之上增加轻量 LLM sanitizer 作为补充层。
 12. 加入面向持久化多轮协作的 `ContextAnchorResolver`：把用户关于上一轮已接受工作的主张解析成结构化 `context_anchors`，与历史 `CheckedRecord` 核对；无法证明继承关系时，要求用户澄清。
+13. 用 [implementation_risk_register_20260704.zh-CN.md](./implementation_risk_register_20260704.zh-CN.md) 跟踪 v0.2.0 hardening：evidence provenance、clean acceptance benchmark、写工具前置事务 staging、非权威语义召回、turn/event-aware memory retention、本地工作台 server 边界和多模态 evidence provenance。
 
 ## 9. 参考文献
 
