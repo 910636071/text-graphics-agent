@@ -7,7 +7,7 @@ authors:
 year: 2026
 type: software
 abstract: "A research prototype for semantic contamination control in disposable child-agent workflows."
-repository-code: "https://github.com/910636071/text-graphics-agent-release"
+repository-code: "https://github.com/910636071/text-graphics-agent"
 license: "Apache-2.0"
 keywords:
   - "AI agents"

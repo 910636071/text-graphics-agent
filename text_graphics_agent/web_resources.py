@@ -526,6 +526,36 @@ HTML_CONTENT = """<!DOCTYPE html>
             margin: 8px 8px 6px;
         }
 
+        .sidebar-tools-group {
+            margin: 0;
+        }
+
+        .sidebar-tools-group > summary {
+            list-style: none;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .sidebar-tools-group > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .sidebar-tools-group > summary::before {
+            content: '▸';
+            font-size: 10px;
+            color: var(--faint);
+            transition: transform 180ms ease;
+            display: inline-block;
+            margin-left: 8px;
+        }
+
+        .sidebar-tools-group[open] > summary::before {
+            transform: rotate(90deg);
+        }
+
         .nav-button, .project-item, .session-item {
             display: flex;
             align-items: center;
@@ -2570,15 +2600,15 @@ HTML_CONTENT = """<!DOCTYPE html>
                 <button id="btn-guide" class="nav-button" onclick="switchTab('guide')"><span class="nav-icon">?</span><span data-i18n="nav.guide">指南</span></button>
             </div>
 
-            <div>
-                <div class="sidebar-label" data-i18n="label.project">诊断工具</div>
+            <details class="sidebar-tools-group">
+                <summary class="sidebar-label" data-i18n="label.project">诊断工具</summary>
                 <button id="btn-project" class="project-item" onclick="switchTab('intro')"><span class="nav-icon">▣</span>text-graphics-agent</button>
                 <button id="btn-demo" class="project-item" onclick="runMode('demo')"><span class="nav-icon">▶</span><span data-i18n="project.demo">运行示例</span></button>
                 <button id="btn-check" class="project-item" onclick="runMode('self_check')"><span class="nav-icon">✓</span><span data-i18n="project.selfCheck">健康检查</span></button>
                 <button id="btn-bench" class="project-item" onclick="runMode('benchmark')"><span class="nav-icon">▤</span><span data-i18n="project.benchmark">基准对照</span></button>
                 <button id="btn-adversarial" class="project-item" onclick="switchTab('adversarial')"><span class="nav-icon">◇</span><span data-i18n="project.adversarial">安全实验室</span></button>
                 <button id="btn-search" class="project-item" onclick="switchTab('search')"><span class="nav-icon">⌕</span><span data-i18n="nav.search">诊断搜索</span></button>
-            </div>
+            </details>
 
             <div class="sidebar-spacer"></div>
 
@@ -3856,7 +3886,7 @@ HTML_CONTENT = """<!DOCTYPE html>
 
         function restoreInspectorState() {
             const saved = localStorage.getItem('tga-inspector-open');
-            const open = saved === null ? true : saved === 'true';
+            const open = saved === null ? false : saved === 'true';
             const shell = document.querySelector('.app-shell');
             if (shell && open) shell.classList.add('inspector-open');
             const btn = document.getElementById('btn-inspector-toggle');

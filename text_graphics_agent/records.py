@@ -60,9 +60,24 @@ class TaskSpec:
         "secret_access",
     )
     requires_tests: bool = True
+    requires_evidence_provenance: bool = False
     sanitized: bool = False
     sanitized_provenance: str = ""
     mother_notes: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class EvidenceProvenance:
+    """Auditable provenance for file-derived proposal evidence.
+
+    ``sha256`` is the full-file hash. ``snippet_hash`` is only populated when
+    the tool returned a truncated snippet instead of the complete file.
+    """
+
+    path: str
+    sha256: str
+    tool_call_id: str
+    snippet_hash: str = ""
 
 
 @dataclass(frozen=True)
@@ -74,6 +89,7 @@ class AgentProposal:
     proposal_kind: ProposalKind
     claim: str
     evidence: tuple[str, ...]
+    evidence_provenance: tuple[EvidenceProvenance, ...] = ()
     proposed_scopes: tuple[str, ...] = ()
     proposed_outputs: tuple[str, ...] = ()
     required_anchor_text: str = ""

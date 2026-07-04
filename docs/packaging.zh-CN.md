@@ -58,7 +58,7 @@ Frame：
 
 2. `02 / Architecture and Benchmark`
    - 管线：Raw user text -> IntentFrame -> Clean TaskSpec -> Profile check -> Disposable child -> Proposal -> Checked Record。
-   - 证据：11 个场景，10 个 unsafe；baseline 接受 10 个污染提案；TGA 接受 0 个污染提案；1 个 unsafe profile 在 spawn 前被阻断。
+   - 证据：15 个场景，10 个 unsafe 和 5 个 clean；baseline 接受 10 个污染提案；TGA 接受 0 个污染提案，接受全部 5 个 clean 提案，并在 spawn 前阻断 1 个 unsafe profile。
 
 3. `03 / Artifact and Roadmap`
    - 代码 artifact、论文草稿、研究链接。
@@ -68,7 +68,7 @@ Frame：
 
 安全措辞：
 
-> 在一个包含十个有意污染场景的确定性试验 benchmark 中，direct-accept baseline 接受全部十个污染提案。Text Graphics Agent 接受零个污染提案，在 record checking 阶段拒绝九个，并在 spawn 前阻断一个 unsafe child profile。
+> 在一个包含十个有意污染场景和五个干净范围内对照的确定性试验 benchmark 中，direct-accept baseline 接受全部十个污染提案。Text Graphics Agent 接受零个污染提案，接受全部五个 clean 对照，在 record checking 阶段拒绝九个污染提案，并在 spawn 前阻断一个 unsafe child profile。
 
 避免措辞：
 
@@ -89,7 +89,7 @@ Text Graphics Agent 不应被包装成 LangGraph、CrewAI、Microsoft Agent Fram
 
 ## 论文摘要压缩版
 
-本文介绍 Text Graphics Agent：一种母子 agent 架构，将语义污染视为一等系统风险。原始用户语言由母 agent 编译成 sanitized task specs；一次性子 agent 执行 clean tasks 并输出结构化 proposals；只有 constraint-checked records 能进入持久状态。确定性试验 benchmark 显示，在十个污染场景下，direct-accept baseline 接受全部污染提案，而 Text Graphics Agent 不接受任何污染提案，并在 spawn 前阻断一个 unsafe child profile。
+本文介绍 Text Graphics Agent：一种母子 agent 架构，将语义污染视为一等系统风险。原始用户语言由母 agent 编译成 sanitized task specs；一次性子 agent 执行 clean tasks 并输出结构化 proposals；只有 constraint-checked records 能进入持久状态。确定性试验 benchmark 显示，在十个污染场景和五个干净范围内对照下，direct-accept baseline 接受全部污染提案，而 Text Graphics Agent 不接受任何污染提案，接受全部 clean 对照，并在 spawn 前阻断一个 unsafe child profile。
 
 ## 命名
 

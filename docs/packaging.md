@@ -74,8 +74,9 @@ Frames:
 2. `02 / Architecture and Benchmark`
    - Pipeline: Raw user text -> IntentFrame -> Clean TaskSpec ->
      Profile check -> Disposable child -> Proposal -> Checked Record.
-   - Evidence: 11 scenarios, 10 unsafe, baseline accepts 10 polluted proposals,
-     TGA accepts 0 polluted proposals, 1 unsafe profile blocked before spawn.
+   - Evidence: 15 scenarios, 10 unsafe and 5 clean; baseline accepts 10
+     polluted proposals; TGA accepts 0 polluted proposals, accepts all 5 clean
+     proposals, and blocks 1 unsafe profile before spawn.
 
 3. `03 / Artifact and Roadmap`
    - Code artifact, paper draft, research link.
@@ -86,9 +87,10 @@ Frames:
 
 Safe phrasing:
 
-> In a deterministic pilot benchmark with ten intentionally polluted
-> scenarios, a direct-accept baseline accepts all ten polluted proposals. Text
-> Graphics Agent accepts zero polluted proposals, rejects nine during record
+> In a deterministic pilot benchmark with ten intentionally polluted scenarios
+> and five clean in-scope controls, a direct-accept baseline accepts all ten
+> polluted proposals. Text Graphics Agent accepts zero polluted proposals,
+> accepts all five clean controls, rejects nine polluted proposals during record
 > checking, and blocks one unsafe child profile before spawn.
 
 Avoid phrasing:
@@ -118,9 +120,10 @@ that treats semantic contamination as a first-class systems risk. Raw user
 language is compiled into sanitized task specs by a mother agent; disposable
 child agents execute clean tasks and emit structured proposals; only
 constraint-checked records may enter durable state. A deterministic pilot
-benchmark shows that, under ten polluted scenarios, a direct-accept baseline
-admits all polluted proposals while Text Graphics Agent admits none and blocks
-one unsafe child profile before spawn.
+benchmark shows that, under ten polluted scenarios and five clean in-scope
+controls, a direct-accept baseline admits all polluted proposals while Text
+Graphics Agent admits no polluted proposals, accepts all clean controls, and
+blocks one unsafe child profile before spawn.
 
 ## Naming
 

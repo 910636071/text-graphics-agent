@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "text-graphics-agent"
-version = "0.1.0"
+version = "0.2.0"
 description = "A semantic firewall for disposable child-agent workflows."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -36,9 +36,9 @@ dependencies = []
 text-graphics-agent = "text_graphics_agent.gui:main"
 
 [project.urls]
-Homepage = "https://github.com/910636071/text-graphics-agent-release"
-Repository = "https://github.com/910636071/text-graphics-agent-release"
-Documentation = "https://github.com/910636071/text-graphics-agent-release/tree/main/docs"
+Homepage = "https://github.com/910636071/text-graphics-agent"
+Repository = "https://github.com/910636071/text-graphics-agent"
+Documentation = "https://github.com/910636071/text-graphics-agent/tree/main/docs"
 
 [tool.setuptools.packages.find]
 where = ["."]

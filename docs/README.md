@@ -21,6 +21,10 @@ Start here:
   [中文](./provenance_artifacts_20260704.zh-CN.md): timestamped public repository lineage.
 - [Implementation Risk Register 2026-07-04](./implementation_risk_register_20260704.md) /
   [中文](./implementation_risk_register_20260704.zh-CN.md): v0.2.0 evidence, benchmark, and tool-boundary risks.
+- [Test Reports](./test_reports/README.md) / [中文](./test_reports/README.zh-CN.md): release-candidate
+  test summaries and live smoke records.
+- [Examples](../examples/README.md) / [中文](../examples/README.zh-CN.md): reviewed artifacts used for local
+  acceptance checks.
 - [Live API Benchmark](./live_api_benchmark_20260703.md) / [中文](./live_api_benchmark_20260703.zh-CN.md): DeepSeek live-model
   smoke result.
 - [Extraction Map](./extraction_map.md) / [中文](./extraction_map.zh-CN.md): how the prototype maps back to the

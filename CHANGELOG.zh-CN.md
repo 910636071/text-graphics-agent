@@ -2,6 +2,29 @@
 
 English version: [Changelog](./CHANGELOG.md).
 
+## 0.2.0 — Evidence 与真实工作流候选版
+
+### 新增
+
+- 新增文件派生 `EvidenceProvenance` 记录，包含全文件 `sha256`、可选
+  `snippet_hash` 和 `tool_call_id`。
+- 对已提交的 provenance 做严格校验，并支持可选
+  `TaskSpec.requires_evidence_provenance` 强制要求。
+- deterministic benchmark 扩展到 15 个场景：10 个污染场景、5 个 clean
+  in-scope 场景，并单独报告 clean false-positive 指标。
+- 普通聊天在配置 provider key 后可走真实模型。聊天回复不会创建
+  `TaskSpec`，不会派发子 agent，也不会生成 `CheckedRecord`。
+- 新增 `docs/test_reports/`，包含 v0.2.0 candidate 中英文测试报告。
+- 新增 `examples/snake_game.html` 作为本地功能验收过的审查产物。它不代表
+  当前版本已经具备写能力子 agent 执行。
+
+### 边界
+
+- 当前版本仍是研究原型和公开审查 artifact，不是 production-ready agent
+  operating system。
+- DeepSeek 贪吃蛇只记录为 proposal smoke；可玩游戏验收发生在本地示例产物上。
+- G3 写工具 staging 与 accepted-record commit 语义尚未在本版本完成。
+
 ## 2026-07-04 — 平台化改造
 
 ### 破坏性变更

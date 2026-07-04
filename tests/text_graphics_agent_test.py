@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import sys
 import re
 from pathlib import Path
@@ -31,7 +32,8 @@ from text_graphics_agent.gui import normalize_task_scopes, simulate_pipeline_pay
 from text_graphics_agent.intent import IntentDecomposer  # noqa: E402
 from text_graphics_agent.orchestrator import MotherAgent  # noqa: E402
 from text_graphics_agent.profiles import RegisteredSpecialist, SpecialistProfile  # noqa: E402
-from text_graphics_agent.records import AgentProposal, RecordEnvelope, TaskSpec  # noqa: E402
+from text_graphics_agent.records import AgentProposal, EvidenceProvenance, RecordEnvelope, TaskSpec  # noqa: E402
+from text_graphics_agent.tools import ToolContext  # noqa: E402
 from text_graphics_agent.web_resources import HTML_CONTENT  # noqa: E402
 
 
@@ -501,10 +503,15 @@ def main() -> None:
     assert "cycle_detected" in cyclic.validate()
 
     benchmark = run_benchmark()
-    assert benchmark.scenario_count == 11
+    assert benchmark.scenario_count == 15
     assert benchmark.unsafe_scenario_count == 10
+    assert benchmark.clean_scenario_count == 5
     assert benchmark.baseline_polluted_accepted == 10
+    assert benchmark.baseline_clean_accepted == 5
     assert benchmark.tga_polluted_accepted == 0
+    assert benchmark.tga_clean_accepted == 5
+    assert benchmark.tga_clean_false_positive_count == 0
+    assert benchmark.tga_clean_false_positive_rate == 0.0
     assert benchmark.tga_blocked_before_spawn == 1
     assert benchmark.accepted_pollution_delta == 10
 
@@ -679,6 +686,35 @@ def main() -> None:
         assert followup_result["conversation_history"][0]["role"] == "user"
         assert "连续聊" in followup_result["message"]
         assert not any(event["step"] == "dispatch" for event in followup_result["workflow_events"])
+
+        import text_graphics_agent.api_benchmark as api_benchmark_module  # noqa: E402
+        original_call_live_chat = api_benchmark_module.call_live_chat
+        live_chat_calls = []
+        try:
+            def fake_call_live_chat(**kwargs):
+                live_chat_calls.append(kwargs["messages"])
+                return "这是 live LLM 的普通聊天回复，不创建 TaskSpec。"
+
+            api_benchmark_module.call_live_chat = fake_call_live_chat
+            save_config({
+                **DEFAULT_CONFIG,
+                "api_provider": "deepseek",
+                "api_key": "unit_test_live_key",
+                "model_name": "deepseek-chat",
+            })
+            live_chat_result = simulate_pipeline_payload("我们纯聊天，聊聊自由意志和决定论，你怎么看？", run_live=True)
+            assert live_chat_result["mode"] == "chat"
+            assert live_chat_result["message"] == "这是 live LLM 的普通聊天回复，不创建 TaskSpec。"
+            assert "checked_record" not in live_chat_result
+            assert "task" not in live_chat_result
+            assert not any(event["step"] == "dispatch" for event in live_chat_result["workflow_events"])
+            assert len(live_chat_calls) == 1
+            chat_event = next(event for event in live_chat_result["workflow_events"] if event["step"] == "respond")
+            assert chat_event["details"]["response_source"] == "live_llm"
+        finally:
+            api_benchmark_module.call_live_chat = original_call_live_chat
+            save_config(DEFAULT_CONFIG.copy())
+
         local_goal_result = simulate_pipeline_payload(
             "Fix settings panel layout spacing and 44px touch target in app/static/play.html."
         )
@@ -873,6 +909,264 @@ def main() -> None:
     assert flexible_proposal.required_anchor_text == "settings panel"
     assert flexible_proposal.evidence == ("app/static/play.html",)
     assert checker.check(live_task, flexible_proposal).accepted
+
+    provenance_task = TaskSpec(
+        task_id="provenance-001",
+        objective="Review evidence provenance.",
+        allowed_scopes=("tests/text_graphics_agent_test.py",),
+        requires_evidence_provenance=True,
+        sanitized=True,
+        sanitized_provenance="mother_clean_v1",
+    )
+    tool_context = ToolContext(
+        allowed_scopes=provenance_task.allowed_scopes,
+        workspace_root=ROOT,
+    )
+    read_result = tool_context.read_file("tests/text_graphics_agent_test.py")
+    assert read_result.ok, read_result.error
+    assert read_result.provenance is not None
+    test_file_bytes = (ROOT / "tests/text_graphics_agent_test.py").read_bytes()
+    expected_sha = hashlib.sha256(test_file_bytes).hexdigest()
+    assert read_result.provenance.sha256 == expected_sha
+    assert read_result.provenance.tool_call_id.startswith("read_file:")
+    assert tool_context.call_log[-1]["provenance"] == read_result.provenance
+
+    truncated_read_result = tool_context.read_file("tests/text_graphics_agent_test.py", max_bytes=16)
+    assert truncated_read_result.ok, truncated_read_result.error
+    assert truncated_read_result.provenance is not None
+    assert truncated_read_result.provenance.sha256 == expected_sha
+    assert truncated_read_result.provenance.snippet_hash == hashlib.sha256(test_file_bytes[:16]).hexdigest()
+
+    def _provenance_proposal(
+        child_agent_id: str,
+        *,
+        task_spec: TaskSpec | None = None,
+        evidence: tuple[str, ...] = ("tests/text_graphics_agent_test.py",),
+        evidence_provenance: tuple[EvidenceProvenance, ...] = (),
+        proposed_scopes: tuple[str, ...] = ("tests/text_graphics_agent_test.py",),
+        claim: str = "The test file evidence has auditable sha256 provenance.",
+    ) -> AgentProposal:
+        selected_task = task_spec or provenance_task
+        return AgentProposal(
+            envelope=RecordEnvelope.for_task(
+                actor=f"child:{child_agent_id}",
+                target=selected_task.task_id,
+                cause="provenance-check",
+                scope_id="tests",
+            ),
+            task_id=selected_task.task_id,
+            child_agent_id=child_agent_id,
+            child_role="code_reviewer",
+            proposal_kind="analysis",
+            claim=claim,
+            evidence=evidence,
+            evidence_provenance=evidence_provenance,
+            proposed_scopes=proposed_scopes,
+            proposed_outputs=("analysis",),
+            test_commands=("python tests/text_graphics_agent_test.py",),
+            confidence=0.9,
+        )
+
+    provenance_proposal = _provenance_proposal(
+        "provenance-001",
+        evidence_provenance=(read_result.provenance,),
+    )
+    assert checker.check(provenance_task, provenance_proposal).accepted
+
+    truncated_provenance_proposal = _provenance_proposal(
+        "provenance-truncated",
+        evidence_provenance=(truncated_read_result.provenance,),
+    )
+    assert checker.check(provenance_task, truncated_provenance_proposal).accepted
+
+    missing_provenance = _provenance_proposal(
+        "provenance-missing",
+        claim="The test file evidence omits provenance.",
+    )
+    missing_checked = checker.check(provenance_task, missing_provenance)
+    assert not missing_checked.accepted
+    assert "evidence_missing_provenance:tests/text_graphics_agent_test.py" in missing_checked.violations
+
+    bad_hash_provenance = _provenance_proposal(
+        "provenance-bad-hash",
+        evidence_provenance=(
+            EvidenceProvenance(
+                path="tests/text_graphics_agent_test.py",
+                sha256="not-a-sha",
+                tool_call_id="read_file:bad-hash",
+            ),
+        ),
+        claim="The test file evidence has a malformed full-file hash.",
+    )
+    bad_hash_checked = checker.check(provenance_task, bad_hash_provenance)
+    assert not bad_hash_checked.accepted
+    assert "bad_evidence_provenance_sha256:tests/text_graphics_agent_test.py" in bad_hash_checked.violations
+
+    missing_tool_provenance = _provenance_proposal(
+        "provenance-missing-tool",
+        evidence_provenance=(
+            EvidenceProvenance(
+                path="tests/text_graphics_agent_test.py",
+                sha256=expected_sha,
+                tool_call_id="",
+            ),
+        ),
+        claim="The test file evidence omits the provenance tool call ID.",
+    )
+    missing_tool_checked = checker.check(provenance_task, missing_tool_provenance)
+    assert not missing_tool_checked.accepted
+    assert "missing_evidence_tool_call_id:tests/text_graphics_agent_test.py" in missing_tool_checked.violations
+
+    traversal_provenance = _provenance_proposal(
+        "provenance-traversal",
+        evidence=("../README.md",),
+        evidence_provenance=(
+            EvidenceProvenance(
+                path="../README.md",
+                sha256="0" * 64,
+                tool_call_id="read_file:traversal",
+            ),
+        ),
+        claim="The provenance path attempts to traverse out of scope.",
+    )
+    traversal_checked = checker.check(provenance_task, traversal_provenance)
+    assert not traversal_checked.accepted
+    assert "evidence_provenance_path_traversal:../README.md" in traversal_checked.violations
+
+    empty_path_provenance = _provenance_proposal(
+        "provenance-empty-path",
+        evidence_provenance=(
+            EvidenceProvenance(
+                path="",
+                sha256="0" * 64,
+                tool_call_id="read_file:empty-path",
+            ),
+        ),
+        claim="The provenance path is empty.",
+    )
+    empty_path_checked = checker.check(provenance_task, empty_path_provenance)
+    assert not empty_path_checked.accepted
+    assert "bad_evidence_provenance:path" in empty_path_checked.violations
+
+    bad_snippet_hash_provenance = _provenance_proposal(
+        "provenance-bad-snippet",
+        evidence_provenance=(
+            EvidenceProvenance(
+                path="tests/text_graphics_agent_test.py",
+                sha256=expected_sha,
+                tool_call_id="read_file:bad-snippet",
+                snippet_hash="not-a-sha",
+            ),
+        ),
+        claim="The provenance snippet hash is malformed.",
+    )
+    bad_snippet_checked = checker.check(provenance_task, bad_snippet_hash_provenance)
+    assert not bad_snippet_checked.accepted
+    assert "bad_evidence_snippet_hash:tests/text_graphics_agent_test.py" in bad_snippet_checked.violations
+
+    unreferenced_provenance = _provenance_proposal(
+        "provenance-unreferenced",
+        evidence_provenance=(
+            EvidenceProvenance(
+                path="README.md",
+                sha256="0" * 64,
+                tool_call_id="read_file:999999",
+            ),
+        ),
+        claim="The proposal cites provenance for a file it did not name as evidence.",
+    )
+    unreferenced_checked = checker.check(provenance_task, unreferenced_provenance)
+    assert not unreferenced_checked.accepted
+    assert "evidence_missing_provenance:tests/text_graphics_agent_test.py" in unreferenced_checked.violations
+    assert "evidence_provenance_scope_escape:README.md" in unreferenced_checked.violations
+    assert "evidence_provenance_unreferenced:README.md" in unreferenced_checked.violations
+
+    non_strict_provenance_task = TaskSpec(
+        task_id="provenance-nonstrict-001",
+        objective="Review optional evidence provenance.",
+        allowed_scopes=("tests/text_graphics_agent_test.py",),
+        sanitized=True,
+        sanitized_provenance="mother_clean_v1",
+    )
+    malformed_optional_provenance = _provenance_proposal(
+        "provenance-optional-malformed",
+        task_spec=non_strict_provenance_task,
+        evidence_provenance=(
+            EvidenceProvenance(
+                path="tests/text_graphics_agent_test.py",
+                sha256="not-a-sha",
+                tool_call_id="read_file:optional",
+            ),
+        ),
+        claim="Optional provenance is still validated when supplied.",
+    )
+    optional_checked = checker.check(non_strict_provenance_task, malformed_optional_provenance)
+    assert not optional_checked.accepted
+    assert "bad_evidence_provenance_sha256:tests/text_graphics_agent_test.py" in optional_checked.violations
+
+    model_provenance_proposal, model_provenance_parse_ok = proposal_from_model_json(
+        {
+            "claim": "The test file evidence has model-supplied provenance.",
+            "evidence": ["tests/text_graphics_agent_test.py"],
+            "evidence_provenance": [
+                {
+                    "path": "tests/text_graphics_agent_test.py",
+                    "sha256": expected_sha,
+                    "tool_call_id": "read_file:000001",
+                }
+            ],
+            "proposed_scopes": ["tests/text_graphics_agent_test.py"],
+            "proposed_outputs": ["analysis"],
+            "test_commands": ["python tests/text_graphics_agent_test.py"],
+            "confidence": 0.8,
+        },
+        task=provenance_task,
+        child_id="api-provenance-test",
+        cause="unit-test",
+    )
+    assert model_provenance_parse_ok
+    assert model_provenance_proposal.evidence_provenance[0].sha256 == expected_sha
+    assert checker.check(provenance_task, model_provenance_proposal).accepted
+
+    malformed_model_provenance, malformed_model_parse_ok = proposal_from_model_json(
+        {
+            "claim": "The model supplies a non-object provenance entry.",
+            "evidence": ["tests/text_graphics_agent_test.py"],
+            "evidence_provenance": ["not-an-object"],
+            "proposed_scopes": ["tests/text_graphics_agent_test.py"],
+            "proposed_outputs": ["analysis"],
+            "test_commands": ["python tests/text_graphics_agent_test.py"],
+            "confidence": 0.8,
+        },
+        task=provenance_task,
+        child_id="api-provenance-nondict-test",
+        cause="unit-test",
+    )
+    assert not malformed_model_parse_ok
+    assert malformed_model_provenance.evidence_provenance == ()
+
+    non_string_model_provenance, non_string_model_parse_ok = proposal_from_model_json(
+        {
+            "claim": "The model supplies non-string provenance fields.",
+            "evidence": ["tests/text_graphics_agent_test.py"],
+            "evidence_provenance": [
+                {
+                    "path": "tests/text_graphics_agent_test.py",
+                    "sha256": 123,
+                    "tool_call_id": "read_file:000001",
+                }
+            ],
+            "proposed_scopes": ["tests/text_graphics_agent_test.py"],
+            "proposed_outputs": ["analysis"],
+            "test_commands": ["python tests/text_graphics_agent_test.py"],
+            "confidence": 0.8,
+        },
+        task=provenance_task,
+        child_id="api-provenance-type-test",
+        cause="unit-test",
+    )
+    assert not non_string_model_parse_ok
+    assert non_string_model_provenance.evidence_provenance == ()
 
     repair_prompt = repair_messages(
         live_task,

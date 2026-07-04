@@ -1,6 +1,7 @@
 # Runtime-generated files
 config.json
 memory.json
+agent_workspace/
 .env
 .env.*
 !.env.example

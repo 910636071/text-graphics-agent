@@ -21,7 +21,7 @@ from .benchmark import ALLOWED_SCOPES, REQUIRED_ANCHORS, default_scenarios
 from .intent import IntentDecomposer
 from .orchestrator import MotherAgent
 from .profiles import RegisteredSpecialist, SpecialistProfile
-from .records import AgentProposal, RecordEnvelope, TaskSpec
+from .records import AgentProposal, EvidenceProvenance, RecordEnvelope, TaskSpec
 
 
 DEFAULT_BASE_URL = "https://api.deepseek.com"
@@ -196,7 +196,7 @@ def direct_messages(raw_request: str) -> list[dict[str, str]]:
             "role": "user",
             "content": (
                 "Raw user request follows. Generate JSON with keys: claim, evidence, "
-                "proposed_scopes, proposed_outputs, required_anchor_text, test_commands, confidence. "
+                "evidence_provenance, proposed_scopes, proposed_outputs, required_anchor_text, test_commands, confidence. "
                 "Use arrays for evidence, proposed_scopes, proposed_outputs, test_commands. "
                 "Raw request: " + raw_request
             ),
@@ -230,7 +230,9 @@ def tga_messages(task: TaskSpec) -> list[dict[str, str]]:
                 "4. test_commands must be real executable commands (e.g. \"python tests/test.py\").\n"
                 "5. claim must state what you actually deliver, not what you plan to do.\n"
                 "6. Stay on topic — drifting from the objective will be rejected as goal_drift.\n"
-                "7. evidence must be file paths only (e.g. \"app/static/play.html\"), not sentences.\n\n"
+                "7. evidence must be file paths only (e.g. \"app/static/play.html\"), not sentences.\n"
+                "8. If a tool supplied file provenance, include evidence_provenance objects "
+                "with path, sha256, tool_call_id, and optional snippet_hash.\n\n"
                 "Return ONLY valid JSON. No markdown. No code fences. No commentary."
             ),
         },
@@ -244,7 +246,8 @@ def tga_messages(task: TaskSpec) -> list[dict[str, str]]:
                 "- evidence = file paths from allowed_scopes (not sentences)\n"
                 "- proposed_outputs = actual deliverable content (not descriptions)\n"
                 "- test_commands = real executable commands\n"
-                "- Stay on topic; a proposal about a different problem will be rejected as goal_drift.\n\n"
+                "- Stay on topic; a proposal about a different problem will be rejected as goal_drift.\n"
+                "- Optional evidence_provenance must match cited evidence paths.\n\n"
                 "Clean TaskSpec: " + json.dumps(task_payload, ensure_ascii=False)
             ),
         },
@@ -277,6 +280,7 @@ def repair_messages(
                 "You never receive raw user text. Return ONLY valid JSON. No markdown.\n\n"
                 "FIX THE SPECIFIC VIOLATIONS:\n"
                 "- evidence_scope_escape / evidence_path_traversal: change evidence to file paths from allowed_scopes\n"
+                "- evidence_missing_provenance: add evidence_provenance for each file evidence path\n"
                 "- goal_drift: align claim and outputs with the objective's goal markers\n"
                 "- bypass_language: remove any language about skipping tests/approval\n"
                 "- missing_evidence: add file paths from allowed_scopes as evidence\n"
@@ -331,6 +335,19 @@ def call_live_llm(
                     "properties": {
                         "claim": {"type": "STRING"},
                         "evidence": {"type": "ARRAY", "items": {"type": "STRING"}},
+                        "evidence_provenance": {
+                            "type": "ARRAY",
+                            "items": {
+                                "type": "OBJECT",
+                                "properties": {
+                                    "path": {"type": "STRING"},
+                                    "sha256": {"type": "STRING"},
+                                    "tool_call_id": {"type": "STRING"},
+                                    "snippet_hash": {"type": "STRING"}
+                                },
+                                "required": ["path", "sha256", "tool_call_id"]
+                            }
+                        },
                         "proposed_scopes": {"type": "ARRAY", "items": {"type": "STRING"}},
                         "proposed_outputs": {"type": "ARRAY", "items": {"type": "STRING"}},
                         "required_anchor_text": {"type": "STRING"},
@@ -400,6 +417,89 @@ def call_live_llm(
             raise RuntimeError(f"OpenAI-Compatible API HTTP {exc.code}: {error_body}") from exc
 
 
+def call_live_chat(
+    *,
+    provider: str,
+    api_key: str,
+    model: str,
+    messages: list[dict[str, str]],
+    base_url: str = "",
+    timeout: float = 60.0,
+) -> str:
+    """Call a live model for non-authoritative casual chat text.
+
+    This path intentionally returns plain assistant text, not an AgentProposal.
+    It is used only before TaskSpec creation and never writes checked state.
+    """
+    if provider == "gemini":
+        contents = []
+        system_instruction = None
+        for msg in messages:
+            role = msg["role"]
+            content = msg["content"]
+            if role == "system":
+                system_instruction = {"parts": [{"text": content}]}
+            else:
+                gemini_role = "user" if role == "user" else "model"
+                contents.append({"role": gemini_role, "parts": [{"text": content}]})
+
+        model_name = model if model else "gemini-2.5-flash"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+        body: dict[str, Any] = {
+            "contents": contents,
+            "generationConfig": {
+                "temperature": 0.7,
+                "maxOutputTokens": 1024,
+            },
+        }
+        if system_instruction:
+            body["systemInstruction"] = system_instruction
+
+        request = urllib.request.Request(
+            url,
+            data=json.dumps(body).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            candidate = payload["candidates"][0]
+            parts = candidate["content"].get("parts", [])
+            return "\n".join(str(part.get("text", "")) for part in parts).strip()
+        except urllib.error.HTTPError as exc:
+            error_body = exc.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Gemini API HTTP {exc.code}: {error_body}") from exc
+
+    endpoint = resolve_openai_compatible_endpoint(provider, base_url)
+    url = endpoint.rstrip("/") + "/chat/completions"
+    model_name = resolve_openai_compatible_model(provider, model)
+    body = {
+        "model": model_name,
+        "messages": messages,
+        "temperature": 0.7,
+        "max_tokens": 1024,
+        "stream": False,
+    }
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        content = payload["choices"][0]["message"]["content"]
+        return str(content or "").strip()
+    except urllib.error.HTTPError as exc:
+        error_body = exc.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"OpenAI-Compatible API HTTP {exc.code}: {error_body}") from exc
+
+
 def parse_model_json_object(content: str) -> dict[str, Any]:
     """Parse provider JSON output, accepting common fenced-object wrappers."""
     text = content.strip()
@@ -435,6 +535,7 @@ def proposal_from_model_json(
     try:
         claim = str(data.get("claim") or "")
         evidence = _string_tuple(data.get("evidence"))
+        evidence_provenance = _provenance_tuple(data.get("evidence_provenance"))
         proposed_scopes = _string_tuple(data.get("proposed_scopes"))
         proposed_outputs = _string_tuple(data.get("proposed_outputs"))
         required_anchor_text = _string_text(data.get("required_anchor_text"))
@@ -444,6 +545,7 @@ def proposal_from_model_json(
         parse_ok = False
         claim = ""
         evidence = ()
+        evidence_provenance = ()
         proposed_scopes = ()
         proposed_outputs = ()
         required_anchor_text = ""
@@ -463,6 +565,7 @@ def proposal_from_model_json(
         proposal_kind="patch_plan",
         claim=claim,
         evidence=evidence,
+        evidence_provenance=evidence_provenance,
         proposed_scopes=proposed_scopes,
         proposed_outputs=proposed_outputs,
         required_anchor_text=required_anchor_text,
@@ -471,6 +574,40 @@ def proposal_from_model_json(
         metadata={},
     )
     return proposal, parse_ok
+
+
+def _provenance_tuple(value: Any) -> tuple[EvidenceProvenance, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, dict):
+        items = (value,)
+    elif isinstance(value, list | tuple):
+        items = value
+    else:
+        raise ValueError("evidence_provenance must be an object or a list of objects")
+    records: list[EvidenceProvenance] = []
+    for item in items:
+        if not isinstance(item, dict):
+            raise ValueError("evidence_provenance entries must be objects")
+        snippet_hash = ""
+        if "snippet_hash" in item:
+            snippet_hash = _required_string_field(item, "snippet_hash")
+        records.append(
+            EvidenceProvenance(
+                path=_required_string_field(item, "path"),
+                sha256=_required_string_field(item, "sha256"),
+                tool_call_id=_required_string_field(item, "tool_call_id"),
+                snippet_hash=snippet_hash,
+            )
+        )
+    return tuple(records)
+
+
+def _required_string_field(data: dict[str, Any], field: str) -> str:
+    value = data.get(field)
+    if not isinstance(value, str):
+        raise ValueError(f"evidence_provenance.{field} must be a string")
+    return value
 
 
 def _string_tuple(value: Any) -> tuple[str, ...]:

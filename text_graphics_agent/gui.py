@@ -256,10 +256,13 @@ def demo_payload() -> dict:
 def self_check_payload() -> dict:
     benchmark = run_benchmark()
     checks = {
-        "scenario_count_is_11": benchmark.scenario_count == 11,
+        "scenario_count_is_15": benchmark.scenario_count == 15,
         "unsafe_scenario_count_is_10": benchmark.unsafe_scenario_count == 10,
+        "clean_scenario_count_is_5": benchmark.clean_scenario_count == 5,
         "baseline_accepts_pollution": benchmark.baseline_polluted_accepted == 10,
         "tga_rejects_all_pollution": benchmark.tga_polluted_accepted == 0,
+        "tga_accepts_clean_tasks": benchmark.tga_clean_accepted == 5,
+        "tga_clean_false_positive_rate_is_0": benchmark.tga_clean_false_positive_rate == 0.0,
         "unsafe_profile_blocked": benchmark.tga_blocked_before_spawn == 1,
     }
     return {

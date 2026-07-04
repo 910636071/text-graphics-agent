@@ -33,7 +33,7 @@ TGA 定义了一种人类与 AI Agent 之间的双向治理协议：人类意图
 `Pipeline` 类是运行用户请求的唯一入口，编排完整的安全工作流：
 
 1. **意图防火墙** — `IntentDecomposer.decompose()` 分离用户主张与客观事实。
-2. **闲聊快捷路径** — 非任务输入直接回复，不派发子 Agent。
+2. **闲聊快捷路径** — 非任务输入走聊天回复；配置了 Live LLM 时使用模型，没有 key 时使用本地 fallback；不创建 `TaskSpec`，也不派发子 Agent。
 3. **澄清检查** — 模糊请求要求用户补充细节。
 4. **非法 scope 检查** — 绝对路径和路径穿越在派发前被拦截。
 5. **任务净化** — `MotherAgent.make_clean_task()` 生成不含原始用户文本的 `TaskSpec`。策展记忆可注入 `mother_notes`（但绝不注入 `objective`）。

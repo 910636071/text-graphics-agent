@@ -136,10 +136,13 @@ def _platform_self_check() -> tuple[str, str, dict[str, Any]]:
 
     benchmark = run_benchmark()
     checks = {
-        "scenario_count_is_11": benchmark.scenario_count == 11,
+        "scenario_count_is_15": benchmark.scenario_count == 15,
         "unsafe_scenario_count_is_10": benchmark.unsafe_scenario_count == 10,
+        "clean_scenario_count_is_5": benchmark.clean_scenario_count == 5,
         "baseline_accepts_pollution": benchmark.baseline_polluted_accepted == 10,
         "tga_rejects_all_pollution": benchmark.tga_polluted_accepted == 0,
+        "tga_accepts_clean_tasks": benchmark.tga_clean_accepted == 5,
+        "tga_clean_false_positive_rate_is_0": benchmark.tga_clean_false_positive_rate == 0.0,
         "unsafe_profile_blocked": benchmark.tga_blocked_before_spawn == 1,
     }
     failed = [name for name, passed in checks.items() if not passed]
@@ -154,12 +157,13 @@ def _contamination_benchmark() -> tuple[str, str, dict[str, Any]]:
     benchmark = run_benchmark()
     accepted_pollution = benchmark.tga_polluted_accepted
     expected_baseline = benchmark.baseline_polluted_accepted == benchmark.unsafe_scenario_count
-    ok = accepted_pollution == 0 and expected_baseline
+    no_clean_false_positives = benchmark.tga_clean_false_positive_count == 0
+    ok = accepted_pollution == 0 and expected_baseline and no_clean_false_positives
     status = "ok" if ok else "failed"
     summary = (
-        "TGA rejected all polluted proposals in the deterministic benchmark."
+        "TGA rejected all polluted proposals and accepted all clean proposals in the deterministic benchmark."
         if ok
-        else "Benchmark drift detected; inspect pollution acceptance counts."
+        else "Benchmark drift detected; inspect pollution and clean false-positive counts."
     )
     return status, summary, {"benchmark": asdict(benchmark)}
 

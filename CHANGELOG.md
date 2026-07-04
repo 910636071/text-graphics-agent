@@ -2,6 +2,34 @@
 
 Chinese version: [变更日志](./CHANGELOG.zh-CN.md).
 
+## 0.2.0 — Evidence and Live-Workflow Candidate
+
+### Added
+
+- Added file-derived `EvidenceProvenance` records with full-file `sha256`,
+  optional `snippet_hash`, and `tool_call_id`.
+- Added strict provenance validation for supplied provenance, plus optional
+  `TaskSpec.requires_evidence_provenance` enforcement.
+- Expanded the deterministic benchmark to 15 scenarios: 10 polluted cases and
+  5 clean in-scope cases, with clean false-positive metrics reported
+  separately.
+- Added live chat routing for non-authoritative casual conversation when a
+  provider key is configured. Chat replies do not create `TaskSpec`s, dispatch
+  child agents, or produce `CheckedRecord`s.
+- Added `docs/test_reports/` with v0.2.0 candidate test reports in English and
+  Chinese.
+- Added `examples/snake_game.html` as a reviewed local functional-acceptance
+  artifact. It is not evidence of write-capable child-agent execution.
+
+### Boundaries
+
+- This is still a research prototype and public review artifact, not a
+  production-ready agent operating system.
+- DeepSeek Snake is recorded as proposal smoke only; playable-game acceptance
+  was performed on the local example artifact.
+- G3 write-tool staging and accepted-record commit semantics are not completed
+  in this release.
+
 ## 2026-07-04 — Platform Transformation
 
 ### Breaking Changes

@@ -25,10 +25,13 @@ Custom tools can be registered via :class:`ToolRegistry`.
 from __future__ import annotations
 
 import fnmatch
+import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
+
+from .records import EvidenceProvenance
 
 
 class ToolSecurityError(PermissionError):
@@ -42,6 +45,7 @@ class ToolResult:
     ok: bool
     data: Any = None
     error: str | None = None
+    provenance: EvidenceProvenance | None = None
 
 
 def _normalize_path(path: str) -> str:
@@ -98,6 +102,7 @@ class ToolContext:
         self.allowed_scopes = allowed_scopes
         self.workspace_root = Path(workspace_root).resolve()
         self._call_log: list[dict[str, Any]] = []
+        self._call_counter = 0
 
     # ── Security gate ──────────────────────────────────────────────
 
@@ -120,12 +125,17 @@ class ToolContext:
             )
         return self.workspace_root / normalized
 
+    def _next_tool_call_id(self, tool: str) -> str:
+        self._call_counter += 1
+        return f"{tool}:{self._call_counter:06d}"
+
     def _log(self, tool: str, args: dict[str, Any], result: ToolResult) -> None:
         self._call_log.append({
             "tool": tool,
             "args": args,
             "ok": result.ok,
             "error": result.error,
+            "provenance": result.provenance,
         })
 
     @property
@@ -146,13 +156,21 @@ class ToolContext:
             ToolResult with ``data`` set to the file content string.
         """
         try:
+            tool_call_id = self._next_tool_call_id("read_file")
             resolved = self._enforce_scope(path)
             if not resolved.exists():
                 return ToolResult("read_file", False, error=f"File not found: {path}")
             if not resolved.is_file():
                 return ToolResult("read_file", False, error=f"Not a file: {path}")
-            content = resolved.read_bytes()[:max_bytes].decode("utf-8", errors="replace")
-            result = ToolResult("read_file", True, data=content)
+            raw = resolved.read_bytes()
+            content = raw[:max_bytes].decode("utf-8", errors="replace")
+            provenance = EvidenceProvenance(
+                path=_normalize_path(path),
+                sha256=hashlib.sha256(raw).hexdigest(),
+                tool_call_id=tool_call_id,
+                snippet_hash=hashlib.sha256(raw[:max_bytes]).hexdigest() if len(raw) > max_bytes else "",
+            )
+            result = ToolResult("read_file", True, data=content, provenance=provenance)
             self._log("read_file", {"path": path, "max_bytes": max_bytes}, result)
             return result
         except ToolSecurityError as e:

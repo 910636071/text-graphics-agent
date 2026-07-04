@@ -9,7 +9,7 @@
   author = {Wang, Lijie},
   title = {Text Graphics Agent},
   year = {2026},
-  url = {https://github.com/910636071/text-graphics-agent-release},
+  url = {https://github.com/910636071/text-graphics-agent},
   license = {Apache-2.0},
   note = {Research prototype for semantic contamination control in disposable child-agent workflows}
 }

@@ -48,6 +48,7 @@ class MotherAgent:
         allowed_scopes: tuple[str, ...],
         required_anchors: tuple[str, ...] = (),
         requires_tests: bool = True,
+        requires_evidence_provenance: bool = False,
         memory_hints: tuple[str, ...] = (),
     ) -> TaskSpec:
         """Convert polluted user semantics into a child-safe task.
@@ -77,6 +78,7 @@ class MotherAgent:
             allowed_scopes=allowed_scopes,
             required_anchors=required_anchors,
             requires_tests=requires_tests,
+            requires_evidence_provenance=requires_evidence_provenance,
             sanitized=True,
             sanitized_provenance="mother_clean_v1",
             mother_notes=tuple(notes),

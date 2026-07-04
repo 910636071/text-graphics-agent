@@ -10,7 +10,7 @@ is not part of the technical contribution of Text Graphics Agent.
 - Author: Lijie Wang
 - Affiliation: Independent Researcher
 - Correspondence: <wanglijie100@gmail.com>
-- Public artifact: <https://github.com/910636071/text-graphics-agent-release>
+- Public artifact: <https://github.com/910636071/text-graphics-agent>
 
 ## Current Paper Positioning
 
@@ -51,7 +51,7 @@ Official references:
 
 ## Materials Checklist
 
-- Repository: <https://github.com/910636071/text-graphics-agent-release>
+- Repository: <https://github.com/910636071/text-graphics-agent>
 - Paper draft: [paper_draft.md](./paper_draft.md)
 - Chinese paper draft: [paper_draft.zh-CN.md](./paper_draft.zh-CN.md)
 - Live API smoke report: [live_api_benchmark_20260703.md](./live_api_benchmark_20260703.md)
@@ -83,7 +83,7 @@ submission process.
 
 Materials:
 
-- Repository: <https://github.com/910636071/text-graphics-agent-release>
+- Repository: <https://github.com/910636071/text-graphics-agent>
 - Paper draft: [paper URL or attachment]
 - arXiv endorsement request: [request link or endorsement code provided by
   arXiv after starting the submission, if endorsement is required]

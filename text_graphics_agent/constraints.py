@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from .records import AgentProposal, CheckedRecord, TaskSpec
+from .records import AgentProposal, CheckedRecord, EvidenceProvenance, TaskSpec
 from .intent import BYPASS_MARKERS as _INTENT_BYPASS_MARKERS
 
 
@@ -269,11 +269,13 @@ class EvidenceConstraint(Constraint):
     constraint_id: str = "evidence"
 
     def check(self, task: TaskSpec, proposal: AgentProposal) -> list[str]:
+        violations: list[str] = []
         if not proposal.evidence:
             return ["missing_evidence"]
         if all(item.startswith("user:") for item in proposal.evidence):
             return ["user_semantics_only"]
-        return []
+        violations.extend(_validate_evidence_provenance(task, proposal))
+        return violations
 
 
 class EvidenceScopeConstraint(Constraint):
@@ -509,6 +511,61 @@ def _looks_like_scope_path(value: str) -> bool:
     # Check for file extension pattern (e.g. "play.html", "config.json")
     last_segment = value.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
     return "." in last_segment
+
+
+def _validate_evidence_provenance(task: TaskSpec, proposal: AgentProposal) -> list[str]:
+    violations: list[str] = []
+    path_evidence = tuple(item for item in proposal.evidence if _looks_like_scope_path(item))
+    provenance_by_path: dict[str, list[EvidenceProvenance]] = {}
+
+    for item in proposal.evidence_provenance:
+        normalized_path = _normalize_provenance_path(item.path)
+        provenance_by_path.setdefault(normalized_path, []).append(item)
+        violations.extend(_validate_single_provenance(task, item, normalized_path))
+
+    if task.requires_evidence_provenance:
+        for path in path_evidence:
+            normalized_path = _normalize_provenance_path(path)
+            if normalized_path not in provenance_by_path:
+                violations.append(f"evidence_missing_provenance:{path}")
+
+    evidence_paths = {_normalize_provenance_path(path) for path in path_evidence}
+    for normalized_path in provenance_by_path:
+        if normalized_path and normalized_path not in evidence_paths:
+            violations.append(f"evidence_provenance_unreferenced:{normalized_path}")
+
+    return violations
+
+
+def _validate_single_provenance(
+    task: TaskSpec,
+    provenance: EvidenceProvenance,
+    normalized_path: str,
+) -> list[str]:
+    violations: list[str] = []
+    if not normalized_path:
+        violations.append("bad_evidence_provenance:path")
+    elif _scope_has_traversal(normalized_path):
+        violations.append(f"evidence_provenance_path_traversal:{provenance.path}")
+    elif not _scope_allowed(normalized_path, task.allowed_scopes):
+        violations.append(f"evidence_provenance_scope_escape:{provenance.path}")
+
+    if not _is_sha256_hex(provenance.sha256):
+        violations.append(f"bad_evidence_provenance_sha256:{provenance.path}")
+    if not str(provenance.tool_call_id or "").strip():
+        violations.append(f"missing_evidence_tool_call_id:{provenance.path}")
+    if provenance.snippet_hash and not _is_sha256_hex(provenance.snippet_hash):
+        violations.append(f"bad_evidence_snippet_hash:{provenance.path}")
+    return violations
+
+
+def _normalize_provenance_path(path: str) -> str:
+    return str(path or "").strip().replace("\\", "/")
+
+
+def _is_sha256_hex(value: str) -> bool:
+    text = str(value or "").strip()
+    return len(text) == 64 and all(char in "0123456789abcdefABCDEF" for char in text)
 
 
 def _task_goal_markers(task: TaskSpec) -> tuple[str, ...]:

@@ -17,7 +17,7 @@ This guide is for the local web client at `http://127.0.0.1:8012/`.
 ## Interface overview
 
 - **Sidebar**: "New chat" button, conversation search, history list (persisted to localStorage), and navigation (Workbench, Approval, Automation, Settings, Guide, diagnostic tools).
-- **Chat stream**: The main area. Casual chat gets direct responses. Task requests ("check settings panel layout") are dispatched through the safety pipeline with results returned as cards.
+- **Chat stream**: The main area. Casual chat uses the configured Live LLM when available, with a local fallback; it does not create a `TaskSpec` or dispatch a child agent. Task requests ("check settings panel layout") are dispatched through the safety pipeline with results returned as cards.
 - **Composer**: Bottom input area. Enter sends (Shift+Enter for newline). It stays focused on the request text, sample insertion, model configuration, the Live LLM toggle, and a compact task-scope summary.
 - **Task Scope panel**: Collapsed right-side card beside the chat. Set per-task file scope, optional acceptance anchors, browse workspace files, paste paths, or drop files without leaving the conversation.
 - **Inspector** (toggle with 👁 button): Right panel showing task scope, task context, permission boundary, and curated memory (labeled untrusted).
@@ -26,7 +26,7 @@ This guide is for the local web client at `http://127.0.0.1:8012/`.
 ## Core workflow
 
 1. Type a message in the composer. Press Enter to send.
-2. If it's casual chat ("hello", "what do you think"), TGA responds directly without dispatching a child agent.
+2. If it's casual chat ("hello", "what do you think"), TGA replies in chat mode without dispatching a child agent. With a configured Live LLM key, the reply can come from the model; without one, it uses a local fallback.
 3. If it's a task ("check settings panel layout and give me a fix"), TGA:
    - Decomposes intent and detects contamination (Intent Firewall)
    - Sanitizes the request into a `TaskSpec` (no raw user text reaches the child agent)
@@ -88,7 +88,7 @@ The sidebar's diagnostic section is for platform validation, not daily use:
 
 - **Run Sample**: Demonstrates the dispatch + constraint pipeline.
 - **Health Check**: Verifies platform configuration.
-- **Baseline Comparison**: Runs the 11-scenario deterministic benchmark.
+- **Baseline Comparison**: Runs the 15-scenario deterministic benchmark.
 - **Safety Lab**: Interactive adversarial scenario testing.
 - **Diagnostic Search**: Search the adversarial scenario library.
 

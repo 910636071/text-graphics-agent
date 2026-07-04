@@ -1,4 +1,4 @@
-# 中文文档审查记录
+﻿# 中文文档审查记录
 
 审查日期：2026-07-03；更新：2026-07-04（平台化改造后全量复审）。
 
@@ -51,6 +51,10 @@
 - `README.md` / `README.zh-CN.md`、`docs/paper_draft.md` / `docs/paper_draft.zh-CN.md`、`docs/architecture.md` / `docs/architecture.zh-CN.md` — 新增“双向治理协议”定义：人类意图需先稳定化为 `TaskSpec`，AI 输出需先通过确定性约束成为 `CheckedRecord`。
 - `README.md` / `README.zh-CN.md`、`docs/paper_draft.md` / `docs/paper_draft.zh-CN.md`、`docs/architecture.md` / `docs/architecture.zh-CN.md` — 新增 LLM 游戏适用边界：模型可叙述已批准事实或生成玩家可见文本，但 canonical game state 仍应来自规则、已验证记录或人类批准转换；不把当前 benchmark 扩大为游戏评测。
 - `docs/defensive_publication.md` / `docs/defensive_publication.zh-CN.md` — 新增防御性公开材料，用 prior-art 风格整理 TGA 核心组合、可替换命名、17 条约束、LLM 游戏状态边界和非主张范围，并明确其不是法律意见或专利申请。
+- `docs/implementation_risk_register_20260704.md` / `docs/implementation_risk_register_20260704.zh-CN.md` — 将 v0.2.0 从风险提醒收束为实现加固门槛，新增 evidence provenance、clean acceptance、写工具 staging、跨轮上下文和工作台可靠性的 readiness gates。
+- `docs/implementation_risk_register_20260704.md` / `docs/implementation_risk_register_20260704.zh-CN.md` — 记录本地 G1 候选实现：`EvidenceProvenance`、严格 provenance task flag、`read_file()` 全文件 sha256、严格模型 provenance 解析，以及覆盖截断 snippet、路径穿越、空 path、坏 snippet hash 和非 strict 畸形 provenance 的测试；明确仍未发布为 v0.2.0 能力。
+- `docs/paper_draft.md` / `docs/paper_draft.zh-CN.md`、`docs/packaging.md` / `docs/packaging.zh-CN.md`、`docs/operation_guide.md` / `docs/operation_guide.zh-CN.md` — 将 deterministic benchmark 对齐到本地 G2 候选结果：15 个场景、10 个污染场景、5 个 clean in-scope 场景、clean false-positive rate 0.0。
+- `docs/test_reports/README.md` / `docs/test_reports/README.zh-CN.md`、`docs/test_reports/20260704-v020-candidate.md` / `docs/test_reports/20260704-v020-candidate.zh-CN.md` — 新增测试报告目录，记录本地 v0.2.0 candidate 的 deterministic benchmark、unit/smoke、evidence provenance、clean acceptance、DeepSeek live proposal/chat smoke 和 key leak check。
 
 ## 2026-07-04 任务范围与公开文案收束复审
 
@@ -103,7 +107,7 @@
 
 后续公开前还需要补：
 
-1. 仓库 URL 已确认为 `910636071/text-graphics-agent-release`；如后续变更，需要同步更新中英文 README、`pyproject.toml` 与 `CITATION.cff`。
+1. 仓库 URL 已确认为 `910636071/text-graphics-agent`；如后续变更，需要同步更新中英文 README、`pyproject.toml` 与 `CITATION.cff`。
 2. 如果许可证或公开署名策略变更，`LICENSE.zh-CN.md` 和 `CITATION.zh-CN.md` 必须同步更新。
 3. 公开发布必须从干净的 release 导出或独立仓库推送，不能把私有父仓库历史直接公开。
 4. 如生成对外审查包，必须在本轮文档变更后重新打包，不能沿用旧 zip。

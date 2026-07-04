@@ -203,6 +203,58 @@ def _casual_chat_message(raw_text: str, conversation_history: tuple[dict[str, st
     return (zh if has_cjk else en, en)
 
 
+def _chat_response(
+    raw_text: str,
+    conversation_history: tuple[dict[str, str], ...],
+    *,
+    provider: str,
+    api_key: str,
+    model: str,
+    use_live: bool,
+) -> tuple[str, str, str, str]:
+    fallback_message, fallback_en = _casual_chat_message(raw_text, conversation_history)
+    if not use_live:
+        return fallback_message, fallback_en, "local_fallback", ""
+
+    try:
+        from .api_benchmark import call_live_chat
+
+        live_message = call_live_chat(
+            provider=provider,
+            api_key=api_key.strip(),
+            model=model,
+            messages=_live_chat_messages(raw_text, conversation_history),
+            timeout=45.0,
+        )
+    except Exception as exc:
+        return fallback_message, fallback_en, "local_fallback", f"{type(exc).__name__}: {str(exc)[:240]}"
+
+    if not live_message:
+        return fallback_message, fallback_en, "local_fallback", "empty live chat response"
+    return live_message, live_message, "live_llm", ""
+
+
+def _live_chat_messages(raw_text: str, conversation_history: tuple[dict[str, str], ...]) -> list[dict[str, str]]:
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are TGA Chat, the non-task conversation mode inside Text Graphics Agent. "
+                "Reply naturally to the user. You may discuss ideas and answer questions, but you must not claim to have inspected, "
+                "modified, tested, or written local files. If the user asks for executable work, tell them to provide file scope and "
+                "acceptance criteria so the request can enter the TaskSpec workflow. Do not produce AgentProposal JSON."
+            ),
+        }
+    ]
+    for turn in conversation_history[-6:]:
+        role = "assistant" if turn.get("role") == "assistant" else "user"
+        content = " ".join(str(turn.get("content") or "").split())
+        if content:
+            messages.append({"role": role, "content": content[:800]})
+    messages.append({"role": "user", "content": str(raw_text or "")[:1600]})
+    return messages
+
+
 def _clarification_questions(raw_text: str) -> list[str]:
     text = " ".join(str(raw_text or "").split())
     lowered = text.lower()
@@ -419,7 +471,7 @@ class Pipeline:
 
         # ── Step 2: Casual chat shortcut ──────────────────────────
         if _is_casual_chat_request(raw_text) or _should_continue_chat(raw_text, chat_history):
-            self._handle_chat(raw_text, chat_history, result)
+            self._handle_chat(raw_text, chat_history, result, provider, api_key, model, use_live_child)
             return result
 
         # ── Step 3: Clarification check ───────────────────────────
@@ -732,21 +784,39 @@ class Pipeline:
             )
         )
 
-    def _handle_chat(self, raw_text, chat_history, result: PipelineResult) -> None:
-        message, message_en = _casual_chat_message(raw_text, chat_history)
+    def _handle_chat(
+        self,
+        raw_text,
+        chat_history,
+        result: PipelineResult,
+        provider: str,
+        api_key: str,
+        model: str,
+        use_live_child: bool,
+    ) -> None:
+        message, message_en, response_source, live_error = _chat_response(
+            raw_text,
+            chat_history,
+            provider=provider,
+            api_key=api_key,
+            model=model,
+            use_live=use_live_child,
+        )
         chat_agent = _chat_agent_descriptor()
         result.workflow_events.append(
             workflow_event(
                 "respond",
                 "普通聊天",
-                "识别为非执行任务输入，直接返回聊天回复，不派发子 agent。",
+                "识别为非执行任务输入，返回聊天回复，不派发子 agent。",
                 title_en="Casual chat",
-                detail_en="The input was classified as non-executable conversation, so TGA replied directly without dispatching a child agent.",
+                detail_en="The input was classified as non-executable conversation, so TGA replied without dispatching a child agent.",
                 details={
                     "mode": "chat",
                     "blocked_before_dispatch": False,
                     "task_spec_created": False,
                     "history_turns": len(chat_history),
+                    "response_source": response_source,
+                    **({"live_error": live_error} if live_error else {}),
                 },
                 artifacts=(
                     workflow_artifact(

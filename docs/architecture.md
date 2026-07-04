@@ -47,7 +47,7 @@ The `Pipeline` class is the single entry point for running a user request
 through the full TGA safety workflow:
 
 1. **Intent firewall** — `IntentDecomposer.decompose()` separates user claims from objective facts.
-2. **Casual chat shortcut** — non-task inputs get a direct response without dispatching a child agent.
+2. **Casual chat shortcut** — non-task inputs get a chat reply, using the configured Live LLM when available and local fallback otherwise, without creating a `TaskSpec` or dispatching a child agent.
 3. **Clarification check** — vague requests ask the user for more detail.
 4. **Invalid scope check** — absolute paths and traversal are blocked before dispatch.
 5. **Task sanitization** — `MotherAgent.make_clean_task()` produces a `TaskSpec` with no raw user text. Curated memory hints may be injected into `mother_notes` (but never into `objective`).

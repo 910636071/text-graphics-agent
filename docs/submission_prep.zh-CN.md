@@ -9,7 +9,7 @@
 - 作者：Lijie Wang
 - 身份：独立研究者
 - 联系邮箱：<wanglijie100@gmail.com>
-- 公开 artifact：<https://github.com/910636071/text-graphics-agent-release>
+- 公开 artifact：<https://github.com/910636071/text-graphics-agent>
 
 ## 当前论文定位
 
@@ -43,7 +43,7 @@ endorsement 不是同行评审。请求重点应是：论文是否属于目标 a
 
 ## 材料清单
 
-- 仓库：<https://github.com/910636071/text-graphics-agent-release>
+- 仓库：<https://github.com/910636071/text-graphics-agent>
 - 论文草稿：[paper_draft.zh-CN.md](./paper_draft.zh-CN.md)
 - 英文论文草稿：[paper_draft.md](./paper_draft.md)
 - Live API smoke 报告：[live_api_benchmark_20260703.zh-CN.md](./live_api_benchmark_20260703.zh-CN.md)
@@ -70,7 +70,7 @@ smoke 报告。
 
 材料如下：
 
-- 仓库：<https://github.com/910636071/text-graphics-agent-release>
+- 仓库：<https://github.com/910636071/text-graphics-agent>
 - 论文草稿：[paper URL or attachment]
 - arXiv endorsement request：[开始 arXiv submission 后，如果系统要求 endorsement，使用
   arXiv 提供的 request link 或 endorsement code]

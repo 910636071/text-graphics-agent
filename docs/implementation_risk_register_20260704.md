@@ -11,8 +11,8 @@ implementation boundary.
 
 | Priority | Risk | Current v0.1.0 fact | v0.2.0 action |
 | --- | --- | --- | --- |
-| P1 | Evidence provenance gap | Evidence is mostly path strings checked for scope and traversal. The checker does not yet prove that a claim is derived from the cited file content. | Add evidence provenance records: `path`, `sha256`, optional `snippet_hash`, and `tool_call_id`. Require proposals to cite provenance for file-derived evidence. |
-| P1 | Clean-request false positives | The benchmark is stronger on pollution rejection than on clean acceptance. `bench-clean-patch` is only one positive case. | Add a clean acceptance suite for legal broad requests inside explicit scope, such as "all functions in this file" or "whole allowed module". Report false-positive rate separately from pollution rejection. |
+| P1 | Evidence provenance gap | `v0.1.0` evidence is mostly path strings checked for scope and traversal. A local `v0.2.0` candidate now has opt-in `EvidenceProvenance`, `ToolContext.read_file()` sha256 provenance, and strict-task tests, but this is not yet a released default. | Keep the schema, migrate real proposal producers toward provenance-carrying evidence, and decide which v0.2.0 task classes require `requires_evidence_provenance=True`. |
+| P1 | Clean-request false positives | `v0.1.0` had only one clean positive benchmark case. The local `v0.2.0` candidate now has five clean in-scope scenarios and reports clean false positives separately. | Keep the clean suite in the deterministic benchmark and expand it only when new constraints or task classes are added. |
 | P1 | Write-tool transaction boundary | Built-in `ToolContext` is read-only (`read_file`, `glob`, `grep`). The half-commit risk is not active in v0.1.0, but it becomes critical once write tools exist. | Before adding `write_file`, `run_command`, or patch tools, introduce a staging area. Writes must commit only after `CheckedRecord.accepted == true`; rejected or cancelled runs must discard staged effects. |
 | P2 | Intent firewall recall gap | The first pass is deterministic marker/rule based. This is deliberate, but metaphorical bypass language may not be recalled. | Add optional semantic recall as a non-authoritative hint layer. Embedding or classifier output may raise suspicion or ask for clarification, but must not bypass deterministic constraints. |
 | P2 | Memory decay semantics | Curated memory is untrusted and does not affect constraints. Calendar decay is acceptable for weak hints, not for future security policy. | If memory is ever used for safety routing, add turn/event-aware retention and separate safety feedback retention from ordinary preference decay. |
@@ -36,3 +36,50 @@ The smallest credible v0.2.0 hardening pass should include:
 3. A documented staging contract before any write-capable tool is added.
 
 Everything else can remain future work until those three are in place.
+
+## v0.2.0 Readiness Gates
+
+The `v0.2.0` label should be treated as an implementation-hardening gate, not
+as a production-readiness claim. A release can be called `v0.2.0` only if the
+following artifacts exist and are checked into the repository:
+
+| Gate | Required artifact | Pass condition | Claim unlocked |
+| --- | --- | --- | --- |
+| G1 | Evidence provenance schema and tests | File-derived proposal evidence includes `path`, `sha256`, `tool_call_id`, and optional snippet or range hashes; negative tests reject missing or mismatched provenance. | TGA can claim auditable file-derived evidence, not merely path-scoped evidence. |
+| G2 | Clean acceptance benchmark | At least five clean in-scope tasks pass, including broad-but-scoped requests such as "all functions in this file" and "whole allowed module". False positives are reported separately from pollution rejection. | TGA can report a clean-task false-positive rate alongside rejection rate. |
+| G3 | Write-tool staging contract | If write-capable tools exist, their effects are staged and discarded on rejection, cancellation, or failed approval. If no write tools exist, the contract is documented as a precondition before adding them. | TGA can discuss write-tool safety only within the documented staging boundary. |
+| G4 | Context carryover boundary | Cross-turn claims such as "based on the previous result" remain untrusted unless a `ContextAnchorResolver` or equivalent verifier is implemented and tested. | TGA can keep v0.2.0 scoped to disposable tasks, or explicitly claim verified context anchors if implemented. |
+| G5 | Workbench reliability boundary | Local server docs and tests cover timeout/cancellation behavior for live calls, or the UI remains labeled as a local research workbench. | TGA can avoid presenting the web client as production infrastructure. |
+
+These gates deliberately leave semantic recall, multimodal evidence, and
+production deployment hardening outside the minimum `v0.2.0` scope unless they
+are implemented and tested in the same pass.
+
+## Local v0.2.0 Progress
+
+As of the local worktree after this register update, G1 and G2 have
+implementation candidates:
+
+- `EvidenceProvenance` records exist on `AgentProposal`.
+- `TaskSpec.requires_evidence_provenance` enables strict provenance mode.
+- `ToolContext.read_file()` produces `path`, full-file `sha256`,
+  `tool_call_id`, and optional `snippet_hash` provenance.
+- Model-supplied provenance parsing is strict: provenance entries must be JSON
+  objects, and `path`, `sha256`, `tool_call_id`, and optional `snippet_hash`
+  must be strings.
+- `EvidenceConstraint` rejects missing, malformed, out-of-scope, or unreferenced
+  provenance. `requires_evidence_provenance=False` does not require provenance,
+  but any provenance supplied by a proposal is still validated.
+- Tests cover accepted tool-derived provenance, truncated snippet provenance,
+  parse failures, and negative cases for missing provenance, bad hashes, missing
+  tool IDs, path traversal, empty paths, bad snippet hashes, scope escape,
+  optional malformed provenance, and unreferenced provenance.
+- The deterministic benchmark now has 15 scenarios: 10 intentionally polluted
+  scenarios and 5 clean in-scope scenarios.
+- The clean suite includes broad-but-scoped file review, allowed tests-scope
+  review, scroll behavior review, and multilingual guide review.
+- The current deterministic output reports `tga_polluted_accepted=0`,
+  `tga_clean_accepted=5`, and `tga_clean_false_positive_rate=0.0`.
+
+This is still a local 0.2.0 implementation candidate until committed, pushed,
+and included in a new release tag.

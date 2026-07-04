@@ -7,7 +7,7 @@ from .graph import ExecutionCheckpoint, TaskGraph, TaskNode
 from .intent import IntentDecomposer, IntentFrame
 from .orchestrator import MotherAgent, ScoreCard
 from .profiles import RegisteredSpecialist, SpecialistProfile
-from .records import AgentProposal, CheckedRecord, ChildSessionRecord, RecordEnvelope, TaskSpec
+from .records import AgentProposal, CheckedRecord, ChildSessionRecord, EvidenceProvenance, RecordEnvelope, TaskSpec
 from .workflow_events import WorkflowArtifact
 
 __all__ = [
@@ -19,6 +19,7 @@ __all__ = [
     "CheckedRecord",
     "ChildSessionRecord",
     "ConstraintChecker",
+    "EvidenceProvenance",
     "ExecutionCheckpoint",
     "IntentDecomposer",
     "IntentFrame",
