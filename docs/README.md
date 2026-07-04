@@ -6,6 +6,8 @@ Start here:
 
 - [Architecture](./architecture.md) / [中文](./architecture.zh-CN.md): system boundary and record flow.
 - [Paper Draft](./paper_draft.md) / [中文](./paper_draft.zh-CN.md): research-paper style argument.
+- [Submission Prep](./submission_prep.md) / [中文](./submission_prep.zh-CN.md): arXiv/category/contact preparation
+  notes for public review.
 - [Packaging](./packaging.md) / [中文](./packaging.zh-CN.md): public positioning and reusable copy.
 - [Operation Guide](./operation_guide.md) / [中文](./operation_guide.zh-CN.md): local web client workflow,
   language toggle, adversarial lab, and approval checkpoints.

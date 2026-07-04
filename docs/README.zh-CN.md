@@ -4,6 +4,7 @@
 
 - [架构说明](./architecture.zh-CN.md)：系统边界、记录流和约束族。
 - [论文草稿](./paper_draft.zh-CN.md)：论文风格的核心论证。
+- [投稿准备](./submission_prep.zh-CN.md)：arXiv 分类、推荐申请、联系方式和公开材料清单。
 - [公开包装](./packaging.zh-CN.md)：GitHub、Figma、摘要和演示用语。
 - [操作指南](./operation_guide.zh-CN.md)：本地 Web 客户端、多语言切换、对抗测试台和审批 checkpoint 的使用路径。
 - [品牌手册](./brand_kit.zh-CN.md)：视觉、措辞和对外口径。

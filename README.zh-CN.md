@@ -11,6 +11,8 @@
   ·
   <a href="./docs/operation_guide.zh-CN.md">操作指南</a>
   ·
+  <a href="./docs/submission_prep.zh-CN.md">投稿准备</a>
+  ·
   <a href="./CHANGELOG.zh-CN.md">变更日志</a>
 </p>
 
@@ -201,6 +203,12 @@ python tests/text_graphics_agent_test.py
 ```
 
 1055+ 条断言，覆盖约束检查、调度派发、图执行、Live LLM 修复、Web API 等。
+
+## 论文与联系
+
+- 论文草稿：[docs/paper_draft.zh-CN.md](./docs/paper_draft.zh-CN.md)
+- 投稿准备：[docs/submission_prep.zh-CN.md](./docs/submission_prep.zh-CN.md)
+- 联系方式：Lijie Wang，独立研究者，<wanglijie100@gmail.com>
 
 ## 许可证
 

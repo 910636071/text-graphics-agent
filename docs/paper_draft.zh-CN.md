@@ -2,8 +2,12 @@
 
 英文原文：[Text Graphics Agent: A Semantic Firewall for Disposable Child-Agent Workflows](./paper_draft.md)。
 
-作者：Lijie Wang，独立研究者  
-草稿日期：2026-07-03  
+作者：Lijie Wang，独立研究者
+
+联系邮箱：wanglijie100@gmail.com
+
+草稿日期：2026-07-04
+
 Artifact：`text-graphics-agent/`
 
 ## 摘要

@@ -1,7 +1,11 @@
 # Text Graphics Agent: A Semantic Firewall for Disposable Child-Agent Workflows
 
-Author: Lijie Wang, Independent Researcher  
-Draft date: 2026-07-03  
+Author: Lijie Wang, Independent Researcher
+
+Correspondence: wanglijie100@gmail.com
+
+Draft date: 2026-07-04
+
 Artifact: `text-graphics-agent/`
 
 ## Abstract

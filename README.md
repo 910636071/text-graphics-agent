@@ -11,6 +11,8 @@
   ·
   <a href="./docs/operation_guide.md">Operation Guide</a>
   ·
+  <a href="./docs/submission_prep.md">Submission Prep</a>
+  ·
   <a href="./CHANGELOG.md">Changelog</a>
 </p>
 
@@ -218,6 +220,13 @@ python tests/text_graphics_agent_test.py
 
 1055+ assertions covering constraint checks, orchestrator dispatch, graph
 execution, live LLM repair, web API, and more.
+
+## Paper & Contact
+
+- Paper draft: [docs/paper_draft.md](./docs/paper_draft.md)
+- Submission preparation: [docs/submission_prep.md](./docs/submission_prep.md)
+- Correspondence: Lijie Wang, Independent Researcher,
+  <wanglijie100@gmail.com>
 
 ## License
 

@@ -10,6 +10,7 @@
 - [x] 添加 `.gitignore` 和 Python package metadata。
 - [x] 确认仓库 URL，并更新 `README.md`、`README.zh-CN.md` 和 `CITATION.cff`。
 - [x] 从干净的 release 导出/仓库发布，不公开私有父仓库历史。
+- [x] 添加公开联系方式和投稿准备说明。
 - [ ] 从 Figma pitch 导出社交预览图。
 - [ ] 打 `v0.1.0-paper-artifact` tag。
 - [ ] 在 Zenodo 归档 release，并把 DOI 加入 `CITATION.cff`。

@@ -11,6 +11,7 @@ repository.
       `CITATION.cff`.
 - [x] Publish from a clean release export/repository, not from the private parent
       repository history.
+- [x] Add public contact and submission-preparation notes.
 - [ ] Add a social preview image from the Figma pitch.
 - [ ] Tag `v0.1.0-paper-artifact`.
 - [ ] Archive a release on Zenodo and add the DOI to `CITATION.cff`.

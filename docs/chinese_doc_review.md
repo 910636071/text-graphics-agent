@@ -12,6 +12,7 @@
 | `docs/README.md` | `docs/README.zh-CN.md` | 已补 |
 | `docs/architecture.md` | `docs/architecture.zh-CN.md` | 已补 |
 | `docs/paper_draft.md` | `docs/paper_draft.zh-CN.md` | 已补 |
+| `docs/submission_prep.md` | `docs/submission_prep.zh-CN.md` | 已补 |
 | `docs/packaging.md` | `docs/packaging.zh-CN.md` | 已补 |
 | `docs/brand_kit.md` | `docs/brand_kit.zh-CN.md` | 已补 |
 | `docs/market_survey.md` | `docs/market_survey.zh-CN.md` | 已补 |
@@ -35,6 +36,7 @@
 - `CHANGELOG.md` / `CHANGELOG.zh-CN.md` — 新增 2026-07-04 条目，记录全部 6 个新模块、安全改进、UI/UX 升级、LLM 集成改进。
 - `docs/architecture.md` / `docs/architecture.zh-CN.md` — 新增平台层（Pipeline、Registry、Specialists、Tools、Memory、AsyncExecutor）和展示层描述。
 - `docs/paper_draft.md` / `docs/paper_draft.zh-CN.md` — 更新架构管线图、Intent Firewall（55+35 标记）、Clean TaskSpec（记忆注入）、Specialist Profiles（BaseSpecialist + 工具层）、Graph Executor（AsyncGraphExecutor）、Web Dashboard（聊天流）、局限、下一步实验。
+- `docs/submission_prep.md` / `docs/submission_prep.zh-CN.md` — 新增 arXiv 分类、endorsement 流程、公开联系方式、材料清单和推荐请求模板；明确其为投稿操作材料，不属于技术贡献。
 - `docs/operation_guide.md` / `docs/operation_guide.zh-CN.md` — 重写为聊天流界面操作指南，新增对话历史、聊天旁任务范围、设置分区、策展记忆、Live LLM 章节。
 - `docs/packaging.md` / `docs/packaging.zh-CN.md` — 定位从"语义防火墙"更新为"安全优先的 Agent 平台"，补充平台能力描述。
 - `docs/public_launch_checklist.md` / `docs/public_launch_checklist.zh-CN.md` — 新增平台化清单项，勾选已完成项，并同步公开声明边界。
