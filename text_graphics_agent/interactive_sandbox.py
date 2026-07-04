@@ -10,7 +10,13 @@ import sys
 from typing import Any
 
 from .constraints import ConstraintChecker
-from .intent import IntentDecomposer, IntentFrame
+from .intent import (
+    BYPASS_MARKERS,
+    IntentDecomposer,
+    IntentFrame,
+    SCOPE_MARKERS,
+    USER_CLAIM_MARKERS,
+)
 from .orchestrator import MotherAgent
 from .profiles import RegisteredSpecialist, SpecialistProfile
 from .records import AgentProposal, RecordEnvelope, TaskSpec
@@ -123,18 +129,18 @@ class InteractiveSandbox:
         metadata: dict[str, Any] = {}
 
         # Rule 1: User claims as only evidence ("我发现这肯定是 bug")
-        if any(claim_needle in lowered for claim_needle in ("我发现", "肯定", "事实", "bug")):
+        if any(claim_needle in lowered for claim_needle in USER_CLAIM_MARKERS):
             if not any(file_needle in lowered for file_needle in ("html", "py", "json")):
                 evidence = ("user:raw_request",)
                 claim = "NPC dialogue must change because the user asserts that a bug exists."
 
-        # Rule 2: Skip tests pressure ("不用验证", "跳过测试", "skip tests")
-        if any(marker in lowered for marker in ("不用验证", "不要测试", "直接入库", "别审", "skip tests", "no review")):
+        # Rule 2: Skip tests pressure — uses shared BYPASS_MARKERS bank
+        if any(marker in lowered for marker in BYPASS_MARKERS):
             test_commands = ()
             claim = "Bypass verification. NPC dialogue layout updated without verification."
 
-        # Rule 3: Scope escape pressure ("顺便", "全部", "所有", "整个")
-        if any(marker in lowered for marker in ("顺便", "全部", "所有", "整个", "whatever", "anything")):
+        # Rule 3: Scope escape pressure — uses shared SCOPE_MARKERS bank
+        if any(marker in lowered for marker in SCOPE_MARKERS):
             proposed_scopes = (
                 "behavior-card-mvp/app/static/play.html",
                 "behavior-card-mvp/data/world_modules/adventure/text_exploration_scenes.json",

@@ -28,6 +28,24 @@ DEFAULT_CONFIG: dict[str, Any] = {
 }
 
 
+def normalize_config_data(config_data: dict[str, Any]) -> dict[str, Any]:
+    """Returns a copy with comma-separated UI fields normalized to lists."""
+    normalized = dict(config_data)
+    if isinstance(normalized.get("allowed_scopes"), str):
+        normalized["allowed_scopes"] = [
+            s.strip() for s in normalized["allowed_scopes"].split(",") if s.strip()
+        ]
+    if isinstance(normalized.get("required_anchors"), str):
+        normalized["required_anchors"] = [
+            a.strip() for a in normalized["required_anchors"].split(",") if a.strip()
+        ]
+    if isinstance(normalized.get("disabled_constraints"), str):
+        normalized["disabled_constraints"] = [
+            c.strip() for c in normalized["disabled_constraints"].split(",") if c.strip()
+        ]
+    return normalized
+
+
 def load_config() -> dict[str, Any]:
     """Loads configuration from local config.json. Creates it with defaults if missing."""
     config_path = os.path.abspath(os.path.join(os.getcwd(), CONFIG_FILE))
@@ -51,20 +69,7 @@ def save_config(config_data: dict[str, Any]) -> bool:
     """Saves config data back to config.json in the working directory."""
     config_path = os.path.abspath(os.path.join(os.getcwd(), CONFIG_FILE))
     try:
-        # Standardize allowed_scopes and required_anchors to lists
-        if isinstance(config_data.get("allowed_scopes"), str):
-            config_data["allowed_scopes"] = [
-                s.strip() for s in config_data["allowed_scopes"].split(",") if s.strip()
-            ]
-        if isinstance(config_data.get("required_anchors"), str):
-            config_data["required_anchors"] = [
-                a.strip() for a in config_data["required_anchors"].split(",") if a.strip()
-            ]
-        if isinstance(config_data.get("disabled_constraints"), str):
-            config_data["disabled_constraints"] = [
-                c.strip() for c in config_data["disabled_constraints"].split(",") if c.strip()
-            ]
-
+        config_data = normalize_config_data(config_data)
         with open(config_path, "w", encoding="utf-8") as f:
             json.dump(config_data, f, ensure_ascii=False, indent=2)
         return True

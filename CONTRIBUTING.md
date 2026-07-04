@@ -14,6 +14,10 @@ when they preserve the project's core boundary:
 - Improve documentation without expanding the safety claim.
 - Add adapters that keep raw user text out of child context.
 - Export benchmark outputs as JSONL records for paper tables.
+- Write a custom `BaseSpecialist` for a real use case (e.g. code review, test runner).
+- Add custom tools to `ToolRegistry` (e.g. `run_test`, `http_get`).
+- Improve the Intent Firewall keyword coverage for additional languages.
+- Add i18n translations for languages beyond zh/en.
 
 ## Non-goals
 

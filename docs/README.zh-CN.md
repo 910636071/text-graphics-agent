@@ -5,6 +5,7 @@
 - [架构说明](./architecture.zh-CN.md)：系统边界、记录流和约束族。
 - [论文草稿](./paper_draft.zh-CN.md)：论文风格的核心论证。
 - [公开包装](./packaging.zh-CN.md)：GitHub、Figma、摘要和演示用语。
+- [操作指南](./operation_guide.zh-CN.md)：本地 Web 客户端、多语言切换、对抗测试台和审批 checkpoint 的使用路径。
 - [品牌手册](./brand_kit.zh-CN.md)：视觉、措辞和对外口径。
 - [Agent 仓库调研](./market_survey.zh-CN.md)：从现有 agent 框架吸收了什么，又拒绝了什么。
 - [真实 API Benchmark](./live_api_benchmark_20260703.zh-CN.md)：DeepSeek 真实模型 smoke 结果。

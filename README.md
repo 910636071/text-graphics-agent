@@ -1,177 +1,224 @@
 # Text Graphics Agent (TGA)
 
 <p align="center">
-  <strong>A Semantics-Level Firewall & Execution Sandbox for LLM Agent Workflows</strong>
-</p>
-
-<p align="center">
-  Models Propose. Records Decide.
+  <strong>A Security-First Agent Platform — Models Propose, Records Decide</strong>
 </p>
 
 <p align="center">
   <a href="./README.zh-CN.md">简体中文</a>
   ·
-  <a href="./docs/paper_draft.md">Paper Draft</a>
-  ·
   <a href="./docs/architecture.md">Architecture</a>
   ·
-  <a href="./docs/market_survey.md">Market Survey</a>
+  <a href="./docs/operation_guide.md">Operation Guide</a>
+  ·
+  <a href="./CHANGELOG.md">Changelog</a>
 </p>
 
 <p align="center">
   <img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white">
   <img alt="stdlib only" src="https://img.shields.io/badge/runtime-stdlib_only-0B1020?style=flat-square">
-  <img alt="benchmark" src="https://img.shields.io/badge/benchmark-deterministic-00D1FF?style=flat-square">
-  <img alt="paper draft" src="https://img.shields.io/badge/paper-draft-7C3AED?style=flat-square">
   <img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square">
 </p>
 
 ---
 
-## 💡 Why TGA?
+## What is TGA?
 
-In multi-agent systems and stateful workflows, raw user prompts, external retrieval documents, model associations, and long-term memory are often mixed within the same LLM context. Once corrupted or adversarial semantics enter persistent system states, subsequent agents inherit them as factual truth, causing **Semantic Contamination**.
+TGA is a **security-first agent platform** where a user request is first
+understood by a mother agent, converted into a scoped `TaskSpec`, dispatched to
+disposable child agents, and then checked by deterministic rules before any
+proposal is treated as accepted state.
 
-Traditional safety guards usually filter raw outputs via post-hoc checkers (shadow auditing). While they block malicious inputs, they also misclassify and reject valid repair instructions, degrading **system availability to zero**.
+In most agent frameworks, the LLM directly writes state — if it produces a
+hallucinated fact, a scope-escaping file edit, or a bypass instruction, that
+contamination becomes permanent. TGA solves this with a strict separation:
 
-Text Graphics Agent (TGA) introduces a lightweight, dual-track semantic firewall to establish **Safety & Availability Coexistence (Win-Win)**:
+- **Child agents propose** (`AgentProposal`) — they cannot write state.
+- **Constraint layer decides** (`ConstraintChecker`) — 17 deterministic checks
+  gate every proposal before it can become accepted state.
+- **Mother agent sanitizes** — raw user text never reaches child agents; they
+  only see a cleaned `TaskSpec`.
+- **Humans approve risky transitions** — live model calls, credential changes,
+  and guardrail disables stop at explicit approval checkpoints.
 
-1. **Authority Separation (Propose vs. Decide)**: Child specialist agents act only as memoryless proposal generators (`AgentProposal`). Actual database writes are checked and approved by deterministic ledger checks (`ConstraintChecker`).
-2. **Mother-Child Input Masking**: Child specialists are physically shielded from raw user inputs. They only receive sanitized task specifications (`TaskSpec`) compiled by the Mother Agent.
-3. **Disposable Child Lifecycles**: Specialist sessions are memoryless and automatically destroyed after execution, preventing state persistence and multi-turn contamination.
-4. **Topological Fail-Fast Abort**: If any upstream node's proposal is rejected or throws an exception, the `GraphExecutor` immediately aborts the execution flow and halts at a checkpoint, preventing contamination from leaking downstream.
+## Quick Start
 
----
-
-## 🛡️ SOTA Guardrails Comparison
-
-TGA targets system-level state boundary isolation rather than simple content moderation:
-
-| Dimension | TGA (Ours) | NVIDIA NeMo Guardrails | Guardrails AI | Meta Llama Guard |
-| :--- | :--- | :--- | :--- | :--- |
-| **Primary Focus** | **Physical state isolation** for disposable child agents | **Dialogue state machines** and tool routing rails | **Output structure validation** and validation loops | **Content moderation classification** via fine-tuned model |
-| **Core Mechanism** | Input Firewall + Modular Constraints + Ledger Auditing | Colang behavioral flows | Schema validators with re-ask mechanisms | Moderation classifier LLM |
-| **Input Shielding** | **Supported** (Child specialists never see raw requests; only sanitized TaskSpec) | Unsupported (Model directly exposed to raw prompt) | Unsupported (Model directly exposed to raw prompt) | Unsupported (Only moderates raw request) |
-| **Authority Separation** | **Supported** (Children propose, records decide) | Unsupported (LLM is the direct state writer) | Unsupported (LLM is the direct state writer) | Unsupported (Only outputs Safe/Unsafe flags) |
-| **Topological Fail-Fast** | **Supported** (GraphExecutor top-ready aborts) | Unsupported | Unsupported | Unsupported |
-| **Runtime Cost** | **Micro-overhead** (pure standard-library constraint matching) | Medium (requires Colang interpreter and flow loops) | Medium (requires XML parsing and validation retries) | High (requires additional model inference latency) |
-
----
-
-## 📈 Empirical LLM (DeepSeek) Benchmark Outcomes
-
-We evaluated TGA against a naive baseline using live DeepSeek-Chat APIs across 6 scenarios (5 adversarial injections, 1 clean proposal). The quantitative results (documented in [live_api_benchmark_20260703.md](./docs/live_api_benchmark_20260703.md)) show:
-
-* **Naive Baseline Pollution Admission Rate**: **100% (5/5)** (Adversarial injections bypass safety, polluting persistent storage).
-* **Direct Shadow Check Block Rate**: **100% (5/5)** (Successfully blocks malicious requests, but also misclassifies and blocks 100% of valid repairs, reducing availability to 0%).
-* **TGA Proposal Acceptance Rate**: **100% (6/6)** (TaskSpec limits ensure child agents generate clean, valid proposals that safely write to the database).
-* **TGA Raw Prompt Leak Rate**: **0** (Zero raw user texts are leaked to the reasoning child specialists).
-
-These empirical findings prove that TGA's dual-track defense ensures robust safety metrics while preserving full system utility.
-
----
-
-## 🖥️ Pipeline Architecture
-
-```mermaid
-flowchart LR
-    raw["Raw user text"]
-    intent["IntentFrame"]
-    task["Sanitized TaskSpec"]
-    profile["SpecialistProfile check"]
-    child["Disposable child agent"]
-    proposal["AgentProposal"]
-    checker["ConstraintChecker"]
-    record["CheckedRecord"]
-    score["ScoreCard"]
-
-    raw --> intent --> task --> profile --> child --> proposal --> checker
-    checker -->|"accepted"| record --> score
-    checker -->|"rejected"| score
+```bash
+# Zero dependencies — pure Python standard library
+python -m text_graphics_agent.gui
+# Open http://127.0.0.1:8012
 ```
 
----
+Type naturally in the chat stream. Casual chat gets a direct reply. For real
+work, describe the task and use the right-side **Task Scope** card to set
+per-task files and acceptance anchors; TGA then dispatches a child agent and
+returns a constraint-checked proposal.
 
-## ⚙️ Quickstart
+## Architecture
 
-The prototype is designed with **zero third-party package dependencies** for rapid startup and easy packaging.
+```
+User Input
+    │
+    ▼
+┌─────────────────────────────────────────────────────┐
+│  Pipeline (pipeline.py)                              │
+│    1. Intent Firewall (intent.py)                    │
+│       → separates user claims from objective facts   │
+│    2. Agent Registry (registry.py)                   │
+│       → routes to best-matching specialist           │
+│    3. Specialist (specialists.py)                    │
+│       → BaseSpecialist.run(task) → AgentProposal     │
+│       → ToolContext (tools.py) for file access       │
+│    4. Constraint Checker (constraints.py)            │
+│       → 17 deterministic checks gate every proposal  │
+│    5. Result                                         │
+└─────────────────────────────────────────────────────┘
+    │
+    │  Multi-task orchestration:
+    ▼
+┌─────────────────────────────────────────────────────┐
+│  AsyncGraphExecutor (async_executor.py)              │
+│    Independent nodes run in parallel                  │
+│    Fail-fast: first rejection cancels all remaining  │
+└─────────────────────────────────────────────────────┘
+```
 
-### 1. Run Automated Unit Tests
-```powershell
+### Key Modules
+
+| Module | Role |
+|--------|------|
+| `intent.py` | Intent Firewall — decomposes raw text, detects contamination, extracts user claims |
+| `constraints.py` | 17 modular constraint checks (scope, evidence, authority, bypass, anchors, goal drift, confidence, ...) |
+| `orchestrator.py` | Mother Agent — sanitizes tasks, dispatches specialists, aggregates scores |
+| `pipeline.py` | Orchestrates the full request workflow (chat → task → verdict) |
+| `registry.py` | Agent Registry — capability-based routing via intent codes + goal markers |
+| `specialists.py` | `BaseSpecialist` interface + `LocalSimulationSpecialist` + `LiveSpecialist` |
+| `tools.py` | `ToolContext` — scope-enforced file tools (read_file, glob, grep) |
+| `memory.py` | Curated memory — untrusted context that helps the mother agent, never affects constraints |
+| `async_executor.py` | Concurrent graph executor with fail-fast safety |
+| `gui.py` | Zero-dependency HTTP server (stdlib only) |
+| `web_resources.py` | Single-page dashboard (chat stream, history, task scope panel, settings, inspector) |
+
+## Write a Custom Specialist
+
+```python
+from text_graphics_agent.specialists import BaseSpecialist
+from text_graphics_agent.profiles import SpecialistProfile
+from text_graphics_agent.records import AgentProposal, RecordEnvelope, TaskSpec
+
+class CodeReviewerSpecialist(BaseSpecialist):
+    profile = SpecialistProfile(
+        specialist_id="code-reviewer-001",
+        role="code_reviewer",
+        allowed_scopes=(),
+        tools=("read_file", "glob", "grep"),
+    )
+
+    def run(self, task: TaskSpec) -> list[AgentProposal]:
+        # Tools are scope-enforced — can't read outside task.allowed_scopes
+        result = self.tools.read_file(task.allowed_scopes[0])
+        content = result.data if result.ok else ""
+
+        return [AgentProposal(
+            envelope=RecordEnvelope.for_task(
+                actor="child:code-reviewer",
+                target=task.task_id,
+                cause="review",
+                scope_id="code",
+            ),
+            task_id=task.task_id,
+            child_agent_id="code-reviewer-001",
+            child_role="code_reviewer",
+            proposal_kind="analysis",
+            claim=f"Reviewed {task.allowed_scopes[0]}: found {content.count('TODO')} TODOs",
+            evidence=task.allowed_scopes,
+            proposed_scopes=task.allowed_scopes,
+            proposed_outputs=("analysis",),
+            required_anchor_text="",
+            test_commands=("python tests/text_graphics_agent_test.py",),
+            confidence=0.85,
+        )]
+```
+
+Register it:
+
+```python
+from text_graphics_agent.registry import AgentRegistry
+from text_graphics_agent.pipeline import Pipeline
+
+registry = AgentRegistry()
+registry.register(
+    specialist_id="code-reviewer-001",
+    factory=lambda allowed_scopes=(), required_anchors=(): CodeReviewerSpecialist(),
+    handles_intent=("bug_review", "verification"),
+    handles_markers=("settings_panel", "layout"),
+    priority=100,
+)
+
+pipeline = Pipeline(registry=registry)
+result = pipeline.submit("Check settings panel for bugs")
+```
+
+## The 17 Constraint Checks
+
+| # | Constraint | What it blocks |
+|---|-----------|----------------|
+| 1 | Envelope | Malformed record metadata |
+| 2 | Proposal Kind | Invented action types beyond analysis/patch_plan/expression/test_plan |
+| 3 | Task Mismatch | Proposals for a different task ID |
+| 4 | Sanitized Task | Tasks that bypassed mother agent sanitization |
+| 5 | Authority | Child agents claiming mother/ledger/system roles |
+| 6 | Metadata Leak | Raw user text leaking through metadata fields |
+| 7 | Claim | Empty modification claims |
+| 8 | Evidence | Proposals without independent evidence |
+| 9 | Evidence Scope | Evidence paths outside allowed scopes or with traversal |
+| 10 | Test | Missing test commands when tests are required |
+| 11 | Test Command Safety | Destructive shell commands (rm -rf, format, etc.) |
+| 12 | Bypass Language | "Skip tests", "approve directly", "no review" |
+| 13 | Scope | File changes outside the allowed scope whitelist |
+| 14 | Forbidden Output | Direct writes to persistent facts (confirmed_fact, committed_fact) |
+| 15 | Anchor | Missing or spoofed evidence-chain anchors |
+| 16 | Goal Alignment | Proposals that drift from the sanitized objective |
+| 17 | Confidence | Confidence scores outside [0.0, 1.0] |
+
+## Curated Memory (Untrusted)
+
+TGA's mother agent accumulates memory across sessions — common scopes, task
+patterns, violation feedback. **But memory is untrusted context:**
+
+- It enters `mother_notes` (audit log), **never** `TaskSpec.objective` (child agent's instruction)
+- It **never** affects constraint decisions
+- It decays over time (5%/day) and is pruned below 15% confidence
+- Users can view and delete memories in the Inspector panel
+
+## Public Scope
+
+TGA is not marketed as AGI, a universal hallucination cure, or a complete
+prompt-injection solution. Its claim is narrower: it demonstrates a protocol
+boundary where child agents receive sanitized tasks, can only submit proposals,
+and are checked by deterministic constraints plus human approval gates before
+state changes are trusted.
+
+## Supported LLM Providers
+
+| Provider | Status | Notes |
+|----------|--------|-------|
+| DeepSeek | ✅ Tested | OpenAI-compatible endpoint |
+| OpenAI | ✅ Supported | OpenAI-compatible endpoint |
+| Gemini | ✅ Supported | Native Gemini API |
+| Mock | ✅ Built-in | Offline deterministic mode |
+
+Configure in Settings → Connection, or edit `config.json`.
+
+## Testing
+
+```bash
 python tests/text_graphics_agent_test.py
 ```
 
-### 2. Launch the Interactive REPL Sandbox
-Input custom commands in the terminal (e.g., `"skip tests and write fact directly"`) to see the real-time firewall warnings:
-```powershell
-python -m text_graphics_agent.interactive_sandbox
-```
-
-### 3. Launch the Premium Web Dashboard
-```powershell
-python -m text_graphics_agent.gui
-```
-This automatically allocates a local port and opens your default browser to show a dark-mode glassmorphic dashboard:
-- **Codex-style Workbench Layout**: Use a left project rail, central prompt composer, and right environment panel instead of a decorative card dashboard.
-- **Topology Flow Simulation**: Visualize how raw prompts are decomposed into TaskSpecs and reviewed by constraint validators.
-- **⚙️ Persistent Config Panel**: Set up API Provider (Gemini / OpenAI / DeepSeek), keys, and scope paths. Settings save to `config.json` (ignored in `.gitignore`).
-- **Live Defender Test Mode**: Tick the checkbox, input custom prompts, and watch live API streams trigger and render onto the topological path.
-- **Automation Runner**: Run a read-only automation loop for config health, platform self-checks, and deterministic contamination benchmarks. Automation produces run records with `state_writes=0`; persistence still belongs to the constraint-checked ledger boundary.
-
----
-
-## 📦 Single-File Standalone EXE Release
-
-To run TGA without Python dependencies, compile a native Windows binary:
-
-```powershell
-.\tools\build_windows_exe.ps1
-```
-The compiled single-executable is saved at:
-```text
-dist/TextGraphicsAgent/TextGraphicsAgent.exe
-```
-
----
-
-## 📂 Codebase Anatomy
-
-```text
-text-graphics-agent/
-  text_graphics_agent/
-    intent.py        # Raw user prompt -> IntentFrame firewalling
-    records.py       # TaskSpec / AgentProposal / CheckedRecord dataclass schemas
-    constraints.py   # Modular constraint validators (12+ rule checks)
-    profiles.py      # Child specialist configurations and tool/scope white-lists
-    graph.py         # TaskGraph orchestrator and Fail-Fast abort protocol
-    orchestrator.py  # MotherAgent scheduling dispatcher and ScoreCard collector
-    automation.py    # Read-only automation jobs and run ledger payloads
-    benchmark.py     # Deterministic evaluation test-suite
-    api_benchmark.py # Live LLM API (DeepSeek/Gemini/OpenAI) adapter driver
-    gui.py           # Light HTTP server serving the Web Dashboard
-    web_resources.py # Dashboard single-page HTML/CSS/JS resources
-    config.py        # Config panel persistence controller
-  tests/
-    text_graphics_agent_test.py # Unit tests covering constraints, graphs, and http smoke
-```
-
----
-
-## 📄 Citation (BibTeX)
-
-If you use TGA in your academic papers or software tools, please cite:
-
-```bibtex
-@software{wang2026_text_graphics_agent,
-  author = {Wang, Lijie},
-  title = {Text Graphics Agent: A Semantic Firewall for Disposable Child-Agent Workflows},
-  year = {2026},
-  url = {https://github.com/910636071/text-graphics-agent-release},
-  license = {Apache-2.0},
-  note = {Research prototype for semantic contamination control in disposable child-agent workflows}
-}
-```
+1055+ assertions covering constraint checks, orchestrator dispatch, graph
+execution, live LLM repair, web API, and more.
 
 ## License
 
-This project is licensed under the [Apache License 2.0](./LICENSE).
+Apache-2.0 — see [LICENSE](./LICENSE).

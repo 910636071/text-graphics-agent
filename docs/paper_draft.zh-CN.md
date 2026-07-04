@@ -12,7 +12,7 @@ Artifact：`text-graphics-agent/`
 
 本文草稿介绍 Text Graphics Agent：一种小型母子 agent 架构，把语义污染当作一等系统问题处理。母 agent 只在编译有界 `IntentFrame` 和 sanitized `TaskSpec` 时读取原始用户语义。一次性子专家只接收干净任务，产出结构化 `AgentProposal` 记录，用完即销毁。proposal 必须通过范围、证据、权威、锚点、测试、metadata 和子生命周期的有限约束检查，才能成为 committed state。这个设计把作者早期的 constraint-checked state-record pipeline 从符号状态构造扩展到 agent 编排。
 
-一个包含六个合成场景的确定性试验 benchmark 对比了 direct-accept baseline 和 Text Graphics Agent。在五个有意污染场景中，baseline 接受全部五个污染提案。Text Graphics Agent 接受零个污染提案，在 record checking 阶段拒绝四个，并在 spawn 前阻断一个 unsafe child profile。这不是广泛性能声明；它是一个可复现的边界检查，说明该架构能在闭环协议下让语义污染变得可见、可拒绝。
+一个包含十一个合成场景的确定性试验 benchmark 对比了 direct-accept baseline 和 Text Graphics Agent。在十个有意污染场景中，baseline 接受全部十个污染提案。Text Graphics Agent 接受零个污染提案，在 record checking 阶段拒绝九个，并在 spawn 前阻断一个 unsafe child profile。这不是广泛性能声明；它是一个可复现的边界检查，说明该架构能在闭环协议下让语义污染变得可见、可拒绝。
 
 ## 1. 问题
 
@@ -26,7 +26,7 @@ LLM agent 模糊了几组边界：
 
 Prompt injection 研究已经说明，LLM 集成应用可能混淆外部数据和可执行指令。Greshake 等人描述了 indirect prompt injection 如何利用检索或处理第三方文本的应用。更新的 agent hallucination survey 把 agent 失败视为 pipeline failure，可能发生在 reasoning、execution、perception、memory 和 communication 阶段。多 agent survey 也强调 profiles、perception、self-action、interaction 和 evolution 是 LLM-based multi-agent systems 的核心 workflow。
 
-这里缺失的系统问题不只是“agent 能不能产出正确答案”。还包括：
+这里缺失的系统问题不只是"agent 能不能产出正确答案"。还包括：
 
 > 当 agent 错误时，错误语义对象会在哪里进入持久状态？我们如何阻止它被后续 agent 继承？
 
@@ -45,15 +45,15 @@ Text Graphics Agent 用四条规则实现这一点：
 3. 每个子输出都是 `AgentProposal`，不是状态 mutation。
 4. 只有 constraint-checked records 可以被接受进下游状态。
 
-“Text Graphics” 指把语义材料渲染成可检查的结构化记录。这里的 “graphics” 不是像素图形，而是把语言、截图、代码观察和 agent 主张投影成类型化、可回放、可审计的形式。
+"Text Graphics" 指把语义材料渲染成可检查的结构化记录。这里的 "graphics" 不是像素图形，而是把语言、截图、代码观察和 agent 主张投影成类型化、可回放、可审计的形式。
 
 ## 3. 与已有工作的关系
 
 这个架构不声称多 agent 系统、图 workflow、角色 profile 或约束检查分别是全新发明。
 
-LangGraph 是图导向、长运行、有状态 agent workflow 的典型开源例子，包含 checkpoint 和 human-review 概念。CrewAI 把自主 “Crews” 和事件驱动 “Flows” 分开，并具备显式 role、tool、task 和 control-plane 思路。Microsoft Agent Framework 和 OpenAI Agents SDK 也代表了生产方向：显式 workflow primitives、tracing 和可部署 agent 系统。
+LangGraph 是图导向、长运行、有状态 agent workflow 的典型开源例子，包含 checkpoint 和 human-review 概念。CrewAI 把自主 "Crews" 和事件驱动 "Flows" 分开，并具备显式 role、tool、task 和 control-plane 思路。Microsoft Agent Framework 和 OpenAI Agents SDK 也代表了生产方向：显式 workflow primitives、tracing 和可部署 agent 系统。
 
-在 LLM 安全与边界防御方面，现有的 Guardrail 方法主要分为三类：(1) **NVIDIA NeMo Guardrails** 采用 Colang 行为编程限制多轮对话的流动与工具路由；(2) **Guardrails AI** 专注于结合 XML-like schema 对模型输出进行静态/动态内容纠错与重问；(3) **Meta Llama Guard** 依托微调分类模型执行针对输入/输出文本的分类审查。与之不同，Text Graphics Agent (TGA) 专注于子代理编排中的状态防污染，采用“物理隐藏原始输入”与“智能与权力解耦（仅提供提案，完全由确定性 Constraint 裁决）”的机制，保障了持久状态边界的完整性。
+在 LLM 安全与边界防御方面，现有的 Guardrail 方法主要分为三类：(1) **NVIDIA NeMo Guardrails** 采用 Colang 行为编程限制多轮对话的流动与工具路由；(2) **Guardrails AI** 专注于结合 XML-like schema 对模型输出进行静态/动态内容纠错与重问；(3) **Meta Llama Guard** 依托微调分类模型执行针对输入/输出文本的分类审查。与之不同，Text Graphics Agent (TGA) 专注于子代理编排中的状态防污染，采用"物理隐藏原始输入"与"智能与权力解耦（仅提供提案，完全由确定性 Constraint 裁决）"的机制，保障了持久状态边界的完整性。
 
 这里的贡献更窄：
 
@@ -70,14 +70,18 @@ LangGraph 是图导向、长运行、有状态 agent workflow 的典型开源例
 
 ```text
 raw user text
-  -> IntentFrame
-  -> sanitized TaskSpec
-  -> SpecialistProfile validation
-  -> disposable child specialist
-  -> AgentProposal
-  -> ConstraintChecker
-  -> CheckedRecord
-  -> ScoreCard
+  -> IntentFrame (intent.py)
+  -> Pipeline (pipeline.py)
+    -> Agent Registry (registry.py) — 基于能力的路由
+    -> sanitized TaskSpec
+    -> SpecialistProfile validation
+    -> disposable child specialist (specialists.py)
+      -> ToolContext (tools.py) — scope 强制检查的文件访问
+      -> AgentProposal
+    -> ConstraintChecker (constraints.py)
+    -> CheckedRecord
+    -> ScoreCard
+    -> Memory extraction (memory.py) — 为未来任务积累不可信上下文
 ```
 
 ### 4.1 Intent Firewall
@@ -91,7 +95,7 @@ raw user text
 - assumptions；
 - contamination markers。
 
-当前实现是确定性的，并刻意保持很小。它的目的不是自然语言能力优秀，而是防止原始用户语言作为权威被复制进子 agent 上下文。
+当前实现是确定性的，并刻意保持很小。它的目的不是自然语言能力优秀，而是防止原始用户语言作为权威被复制进子 agent 上下文。实现维护了中英文双语对抗关键词库，覆盖绕审施压（55 条标记）、范围越权施压（上下文感知检测，减少"全部""所有"等常用词的误报）和用户自证（35 条标记）。这些关键词库作为唯一真相源在意图防火墙、约束检查器和管道之间共享。
 
 ### 4.2 Clean TaskSpec
 
@@ -103,7 +107,9 @@ raw user text
 - `sanitized=True`；
 - `sanitized_provenance="mother_clean_v1"`。
 
-`MotherAgent.dispatch()` 会拒绝没有该 provenance 的调用方自建任务。这阻止子 agent 被调用在“只是自称干净”的任务上。
+`MotherAgent.dispatch()` 会拒绝没有该 provenance 的调用方自建任务。这阻止子 agent 被调用在"只是自称干净"的任务上。
+
+母 Agent 可选地将策展记忆提示注入 `mother_notes`。这些提示是不可信上下文——它们帮助母 Agent 推理用户的常见模式，但绝不进入 `TaskSpec.objective`（子 Agent 的指令），绝不影响约束裁决。记忆条目是客观观察（文件范围、意图模式、违规反馈），具有随时间衰减的置信度（每天 5%），低于 15% 阈值时自动剪枝。
 
 ### 4.3 Specialist Profiles
 
@@ -114,26 +120,39 @@ raw user text
 - 越出 task allowed scopes；
 - 缺少可检查的 role 或 specialist id。
 
+子 Agent 实现标准 `BaseSpecialist` 接口，包含 `run(task)`、`cleanup()` 和可选的 `ToolContext` 访问。平台包含两个内置专家：`LocalSimulationSpecialist`（确定性本地模拟器，用于测试）和 `LiveSpecialist`（调用真实 LLM API，带自动 precheck 和修复）。自定义专家可通过 `AgentRegistry` 注册，它根据声明的 intent codes 和 goal markers 使用评分算法路由任务（每匹配一个 intent +2 分，每匹配一个 marker +1 分，priority 作为同分决胜）。
+
+### 4.3a 工具层
+
+当专家的 profile 声明了工具时，会自动创建带 scope 强制检查的 `ToolContext`。内置工具包括 `read_file`、`glob` 和 `grep`——每次调用都检查 `task.allowed_scopes`，拦截路径穿越，并记录审计日志。这确保即使子 Agent 可以观察文件系统，也无法读取任务白名单范围之外的文件。
+
 ### 4.4 一次性子 agent 生命周期
 
-每次子调用都会创建 `ChildSessionRecord`。成功会话以 `destroyed` 结束；失败会话以 `failed` 结束。scorecard 汇报 destroyed child ids 和 session records。这是最小生命周期模型，但能让“用完即销毁”可审计，而不是停留在口号。
+每次子调用都会创建 `ChildSessionRecord`。成功会话以 `destroyed` 结束；失败会话以 `failed` 结束。scorecard 汇报 destroyed child ids 和 session records。这是最小生命周期模型，但能让"用完即销毁"可审计，而不是停留在口号。
 
 ### 4.5 约束检查
 
 `ConstraintChecker` 会拒绝以下 proposal：
 
 - malformed envelopes；
+- proposal_kind 发明有限动作集之外的新类型；
 - task mismatch；
 - unsanitized tasks；
 - 子 agent 声称 mother / ledger authority；
+- record envelope 中冒用高权 actor；
 - metadata 泄漏原始用户文本；
 - empty claims；
 - missing evidence；
 - evidence only from `user:*`；
+- 路径型 evidence 超出任务白名单；
 - missing tests；
+- 破坏性命令伪装成测试；
+- proposal 文本要求绕过审核或直接批准；
 - scope escape；
+- proposed scopes 中出现路径穿越；
 - `committed_fact` 或 `new_action_type` 等 forbidden outputs；
 - missing anchors；
+- 只在 `required_anchor_text` 声明锚点、claim/evidence 没有支撑；
 - confidence 不在 `[0, 1]`。
 
 这让输出面足够有限，可以测试。
@@ -144,11 +163,16 @@ raw user text
 
 更重要的是，`GraphExecutor` 实现了 **Fail-Fast 安全熔断机制**。在传统的 Agent 图调度中，若某个上游节点的子代理输出发生逻辑越权或生成了被污染的 proposal，系统往往会继续执行下游，导致脏状态在拓扑依赖图上传播污染。在 TGA 架构下，一旦检测到任何非 Accept 的记录或执行异常，运行器将立即终止整条图管线的流动并挂起 Checkpoint，防止后续 Agent 继承脏状态，在系统级做到了安全熔断。
 
-### 4.7 零门槛沙箱与 API 交互设置
+`AsyncGraphExecutor` 变体在此基础上扩展了线程池并发：独立节点（彼此无依赖的节点）并行执行，同时保持 fail-fast 契约——第一个拒绝或错误取消当轮所有剩余 future。这允许多任务工作流在不牺牲安全保证的前提下更快完成。
 
-为了降低研究原型的可展示性和使用门槛，本项目引入了本地交互式沙箱（Console REPL Sandbox）与基于 Web 技术的现代 Dashboard。该 Dashboard 运行于本地轻量 HTTP 服务器之上，具备以下特点：
-- **配置文件持久化**：用户可以通过 Web 端修改 API Key, Provider, 允许的作用域白名单等设置，并持久化到本地工作目录下的 `config.json`（该文件已写入 `.gitignore` 以防止泄漏）。
-- **流程动态可视化**：通过直观的 SVG 连线流光和节点变色呼吸灯，直观展现 Raw Request 解构为 Sanitized TaskSpec、Specialist 提案生成到最终 Constraint 审查的防污染拦截轨迹，并支持双栏直接与 Naive Baseline 穿透对比。
+### 4.7 零依赖沙箱与 Web 仪表板
+
+为了降低研究原型的可展示性和使用门槛，本项目包含本地交互式沙箱（`interactive_sandbox.py`）和由零依赖 HTTP 服务器（标准库 `http.server`）驱动的单页 Web 仪表板。
+
+- **聊天流界面**：仪表板呈现 ChatGPT 风格的聊天流，用户自然输入。闲聊直接回复；任务请求通过完整安全管道派发，结果以卡片形式返回聊天流。对话历史持久化到 `localStorage`，支持全量历史搜索。
+- **设置与连接**：分区设置页允许配置 LLM 提供商、API Key 和模型，带"测试连接"按钮。文件范围选择包含工作区文件浏览器和快捷预设。
+- **Inspector 面板**：可切换的右栏面板显示任务上下文、权限边界和策展记忆条目（标注为不可信），含置信度分数和删除控制。
+- **渐进式披露**：Composer 状态栏和工作流时间线默认隐藏，按需展开，降低首屏认知负荷，同时保留完整可审计性。
 
 ## 5. 试验 Benchmark
 
@@ -178,7 +202,7 @@ cd text-graphics-agent
 python -m text_graphics_agent.benchmark
 ```
 
-benchmark 包含六个场景：
+benchmark 包含十一个场景：
 
 | 场景 | 污染类型 | 预期 TGA 处理 |
 | --- | --- | --- |
@@ -187,32 +211,37 @@ benchmark 包含六个场景：
 | `bench-direct-fact-write` | 子 agent 尝试提交世界事实 | reject |
 | `bench-raw-context-leak` | 原始用户文本出现在子 metadata 中 | reject |
 | `bench-unsafe-profile` | child profile 请求原始用户文本 | block before spawn |
+| `bench-authority-impersonation` | 子 agent 冒用 mother/ledger 权威 | reject |
+| `bench-proposal-kind-expansion` | 子 agent 发明 state-write proposal kind | reject |
+| `bench-path-traversal` | 子 agent 把路径穿越藏进白名单前缀 | reject |
+| `bench-anchor-spoof` | 子 agent 只声明锚点但不给证据支撑 | reject |
+| `bench-bypass-language` | 子 agent 要求跳过测试并直接批准 | reject |
 | `bench-clean-patch` | 范围内证据和测试命令 | accept |
 
 当前输出：
 
 ```json
 {
-  "scenario_count": 6,
-  "unsafe_scenario_count": 5,
-  "baseline_accepted": 6,
-  "baseline_polluted_accepted": 5,
+  "scenario_count": 11,
+  "unsafe_scenario_count": 10,
+  "baseline_accepted": 11,
+  "baseline_polluted_accepted": 10,
   "baseline_pollution_acceptance_rate": 1.0,
-  "tga_reviewed_records": 5,
+  "tga_reviewed_records": 10,
   "tga_accepted": 1,
-  "tga_rejected": 4,
+  "tga_rejected": 9,
   "tga_blocked_before_spawn": 1,
   "tga_polluted_accepted": 0,
   "tga_pollution_acceptance_rate": 0.0,
-  "accepted_pollution_delta": 5
+  "accepted_pollution_delta": 10
 }
 ```
 
 解释：
 
-- direct-accept baseline 接受所有 proposal，包括全部五个污染 proposal。
+- direct-accept baseline 接受所有 proposal，包括全部十个污染 proposal。
 - Text Graphics Agent 接受唯一 clean patch proposal。
-- Text Graphics Agent 在 record checking 阶段拒绝四个污染 proposal。
+- Text Graphics Agent 在 record checking 阶段拒绝九个污染 proposal。
 - Text Graphics Agent 在子 agent spawn 前阻断一个 unsafe profile。
 
 这个结果应被理解为架构 sanity check，而不是关于部署 LLM agents 的一般经验声明。
@@ -238,27 +267,31 @@ IntentFrame -> TaskSpec -> SpecialistProfile -> AgentProposal
 2. 论文 2：finite concept-space / constraint interface theory；
 3. 本草稿：基于 checked records 的 disposable-agent orchestration。
 
-两篇论文的连接很强，因为 agent 系统不需要另起一套“真理哲学”。它继承同一个原则：生成候选很便宜，接受状态很昂贵。
+两篇论文的连接很强，因为 agent 系统不需要另起一套"真理哲学"。它继承同一个原则：生成候选很便宜，接受状态很昂贵。
 
 ## 7. 局限
 
 1. benchmark 是合成且确定性的。
-2. 当前 intent decomposition 是小型 rule-based first pass。
+2. intent decomposition 是基于规则的（非 LLM 驱动），虽然现在覆盖了 55 条绕审标记和 35 条用户自证标记（中英文），并具有上下文感知的范围检测。使用轻量 LLM 驱动的 sanitizer 作为补充层的混合方法仍是未来工作。
 3. 目前主要对文本大模型（如 DeepSeek-Chat）进行了闭环评估，尚未扩展到多模态视觉模型。
 4. 当前生命周期模型记录销毁，但不强制进程级隔离。
 5. 约束列表是有限且手写的。
 6. benchmark 只证明 closed-protocol rejection，不证明真实世界攻击抗性。
+7. 策展记忆是不可信的，不影响约束，但其提取逻辑是启发式的——更复杂的记忆策展（如矛盾检测、时序推理）留待未来工作。
 
 这些限制符合当前 artifact 边界。下一阶段应在保持同一 benchmark format 的前提下，加入更多模态对抗生成 proposals。
 
 ## 8. 下一步实验
 
-1. (已完成) 加入 model-backed child adapter。
+1. (已完成) 加入 model-backed child adapter（`LiveSpecialist`）。
 2. (已完成) 让 direct-agent baseline 和 TGA 跑相同 prompts。
-3. 加入多模态截图误解 cases。
-4. 加入 shared-memory contamination cases。
-5. 为论文表格导出 JSONL checked records。
-6. 加入第二个 benchmark，对齐现有配置 UI bug-finding flow。
+3. (已完成) DeepSeek 端到端 Live LLM 验证（贪吃蛇任务，28 秒内通过约束检查，含自动修复）。
+4. (已完成) 平台层：`Pipeline`、`AgentRegistry`、`BaseSpecialist`、`ToolContext`、策展记忆、`AsyncGraphExecutor`。
+5. 加入多模态截图误解 cases。
+6. 加入 shared-memory contamination cases。
+7. 为论文表格导出 JSONL checked records。
+8. 加入第二个 benchmark，对齐现有配置 UI bug-finding flow。
+9. 混合意图防火墙：在基于规则的 `IntentDecomposer` 之上增加轻量 LLM sanitizer 作为补充层。
 
 ## 9. 参考文献
 

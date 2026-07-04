@@ -48,10 +48,17 @@ class MotherAgent:
         allowed_scopes: tuple[str, ...],
         required_anchors: tuple[str, ...] = (),
         requires_tests: bool = True,
+        memory_hints: tuple[str, ...] = (),
     ) -> TaskSpec:
         """Convert polluted user semantics into a child-safe task.
 
         The raw user text is intentionally not copied into TaskSpec.
+
+        Memory hints are untrusted context from the mother agent's curated
+        memory.  They enter ``mother_notes`` as ``memory_hint`` entries to
+        help the mother agent reason, but they NEVER enter ``objective``
+        (the child agent's instruction) and they NEVER affect constraint
+        decisions.
         """
         notes = [
             "TaskSpec is sanitized; child agents must not receive raw user text.",
@@ -59,6 +66,11 @@ class MotherAgent:
         ]
         if intent.contamination_markers:
             notes.append("Mother detected user semantic pressure codes: " + ", ".join(intent.contamination_markers))
+        # Memory hints are explicitly marked as untrusted context.
+        # They appear in mother_notes for auditability but cannot influence
+        # the child agent's objective or the constraint layer's decisions.
+        for hint in memory_hints:
+            notes.append(f"memory_hint (untrusted): {hint}")
         return TaskSpec(
             task_id=task_id,
             objective=intent.stable_goal,

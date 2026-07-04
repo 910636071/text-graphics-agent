@@ -1,29 +1,47 @@
-__pycache__/
-*.py[cod]
-*$py.class
+# Runtime-generated files
+config.json
+memory.json
+.env
+.env.*
+!.env.example
 
+# Python
+__pycache__/
+*$py.class
+*.py[cod]
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
 .Python
 .venv/
 .venv-build/
 venv/
 env/
 ENV/
-
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
 .coverage
 htmlcov/
-
 build/
 dist/
 *.spec
-*.egg-info/
 
-.env
-.env.*
-!.env.example
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
 
+# OS
 .DS_Store
 Thumbs.db
-config.json
+
+# Temporary test files
+_check_*.py
+_check_*.js
+_smoke_*.py
+_test_*.py
+_inject_*.py
+_i18n_check.py

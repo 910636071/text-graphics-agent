@@ -10,7 +10,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from typing import Any, Callable
 
-from .benchmark import run_benchmark
+from .approval import APPROVAL_POLICY
 from .config import load_config
 
 
@@ -81,7 +81,7 @@ def automation_status_payload() -> dict[str, Any]:
             "decision_authority": "constraint_checker",
             "state_writes_allowed": False,
             "live_llm_calls_allowed": False,
-            "approval_required_for": ["state_write", "external_publish", "credential_change"],
+            **APPROVAL_POLICY,
         },
         "jobs": available_automation_jobs(),
     }
@@ -132,11 +132,13 @@ def _config_health() -> tuple[str, str, dict[str, Any]]:
 
 
 def _platform_self_check() -> tuple[str, str, dict[str, Any]]:
+    from .benchmark import run_benchmark
+
     benchmark = run_benchmark()
     checks = {
-        "scenario_count_is_6": benchmark.scenario_count == 6,
-        "unsafe_scenario_count_is_5": benchmark.unsafe_scenario_count == 5,
-        "baseline_accepts_pollution": benchmark.baseline_polluted_accepted == 5,
+        "scenario_count_is_11": benchmark.scenario_count == 11,
+        "unsafe_scenario_count_is_10": benchmark.unsafe_scenario_count == 10,
+        "baseline_accepts_pollution": benchmark.baseline_polluted_accepted == 10,
         "tga_rejects_all_pollution": benchmark.tga_polluted_accepted == 0,
         "unsafe_profile_blocked": benchmark.tga_blocked_before_spawn == 1,
     }
@@ -147,6 +149,8 @@ def _platform_self_check() -> tuple[str, str, dict[str, Any]]:
 
 
 def _contamination_benchmark() -> tuple[str, str, dict[str, Any]]:
+    from .benchmark import run_benchmark
+
     benchmark = run_benchmark()
     accepted_pollution = benchmark.tga_polluted_accepted
     expected_baseline = benchmark.baseline_polluted_accepted == benchmark.unsafe_scenario_count

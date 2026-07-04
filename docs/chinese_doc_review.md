@@ -1,6 +1,6 @@
 # 中文文档审查记录
 
-审查日期：2026-07-03。
+审查日期：2026-07-03；更新：2026-07-04（平台化改造后全量复审）。
 
 目的：确保中文读者不需要依赖英文文档才能理解项目，同时避免中文包装比英文原文更夸张。
 
@@ -26,6 +26,30 @@
 | `LICENSE` | `LICENSE.zh-CN.md` | 已补中文说明；英文许可证仍是正式法律文本 |
 | `.github/pull_request_template.md` | 同文件双语化 | 已补 |
 | `.github/ISSUE_TEMPLATE/*.yml` | 同文件双语化 | 已补 |
+
+## 2026-07-04 平台化改造复审
+
+以下文档在平台化改造后已全量更新中英文版：
+
+- `README.md` / `README.zh-CN.md` — 重写为开源版，含快速开始、自定义 Specialist 示例、17 条约束检查、任务范围说明、策展记忆说明。
+- `CHANGELOG.md` / `CHANGELOG.zh-CN.md` — 新增 2026-07-04 条目，记录全部 6 个新模块、安全改进、UI/UX 升级、LLM 集成改进。
+- `docs/architecture.md` / `docs/architecture.zh-CN.md` — 新增平台层（Pipeline、Registry、Specialists、Tools、Memory、AsyncExecutor）和展示层描述。
+- `docs/paper_draft.md` / `docs/paper_draft.zh-CN.md` — 更新架构管线图、Intent Firewall（55+35 标记）、Clean TaskSpec（记忆注入）、Specialist Profiles（BaseSpecialist + 工具层）、Graph Executor（AsyncGraphExecutor）、Web Dashboard（聊天流）、局限、下一步实验。
+- `docs/operation_guide.md` / `docs/operation_guide.zh-CN.md` — 重写为聊天流界面操作指南，新增对话历史、聊天旁任务范围、设置分区、策展记忆、Live LLM 章节。
+- `docs/packaging.md` / `docs/packaging.zh-CN.md` — 定位从"语义防火墙"更新为"安全优先的 Agent 平台"，补充平台能力描述。
+- `docs/public_launch_checklist.md` / `docs/public_launch_checklist.zh-CN.md` — 新增平台化清单项，勾选已完成项，并同步公开声明边界。
+
+## 2026-07-04 任务范围与公开文案收束复审
+
+- 中英文 README 已对齐为“用户需求 → 母 agent 澄清/拆解 → 受控 TaskSpec → 一次性子 agent 执行 → 确定性裁决”的产品叙事。
+- 中英文操作指南已把任务文件、验收锚点和工作区浏览统一到聊天旁的任务范围卡片，不再描述旧的输入区范围控件。
+- 中英文架构文档和公开清单已统一为 17 条确定性检查。
+- 公开文本明确不声称 AGI、不声称解决所有幻觉、不声称防止所有 prompt injection，只主张 protocol boundary / closed-protocol sanity check。
+- `CONTRIBUTING.md` / `CONTRIBUTING.zh-CN.md` — 新增自定义 Specialist、工具层、i18n 贡献方向。
+
+新增模块均有中英文代码注释和 i18n 键：
+- `pipeline.py` / `specialists.py` / `registry.py` / `tools.py` / `memory.py` / `async_executor.py` — 模块 docstring 和关键注释均双语化。
+- `web_resources.py` — 所有新增 UI 文本均有 zh/en i18n 键。
 
 ## 声明审查
 
@@ -66,5 +90,7 @@
 
 后续公开前还需要补：
 
-1. 仓库 URL 确认后同步更新中英文 README 与 `CITATION.cff`。
+1. 仓库 URL 已确认为 `910636071/text-graphics-agent-release`；如后续变更，需要同步更新中英文 README、`pyproject.toml` 与 `CITATION.cff`。
 2. 如果许可证或公开署名策略变更，`LICENSE.zh-CN.md` 和 `CITATION.zh-CN.md` 必须同步更新。
+3. 公开发布必须从干净的 release 导出或独立仓库推送，不能把私有父仓库历史直接公开。
+4. 如生成对外审查包，必须在本轮文档变更后重新打包，不能沿用旧 zip。

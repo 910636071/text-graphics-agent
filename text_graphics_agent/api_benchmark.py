@@ -14,6 +14,7 @@ import time
 import urllib.error
 import urllib.request
 from dataclasses import asdict, dataclass
+from json import JSONDecodeError
 from typing import Any
 
 from .benchmark import ALLOWED_SCOPES, REQUIRED_ANCHORS, default_scenarios
@@ -25,6 +26,24 @@ from .records import AgentProposal, RecordEnvelope, TaskSpec
 
 DEFAULT_BASE_URL = "https://api.deepseek.com"
 DEFAULT_MODEL = "deepseek-v4-flash"
+
+
+def resolve_openai_compatible_endpoint(provider: str, base_url: str = "") -> str:
+    """Return the chat-completions base URL for OpenAI-compatible providers."""
+    if base_url:
+        return base_url
+    if provider == "deepseek":
+        return DEFAULT_BASE_URL
+    return "https://api.openai.com/v1"
+
+
+def resolve_openai_compatible_model(provider: str, model: str = "") -> str:
+    """Return a provider-appropriate default model when the UI field is blank."""
+    if model:
+        return model
+    if provider == "deepseek":
+        return DEFAULT_MODEL
+    return "gpt-4o-mini"
 
 
 @dataclass(frozen=True)
@@ -198,18 +217,81 @@ def tga_messages(task: TaskSpec) -> list[dict[str, str]]:
         {
             "role": "system",
             "content": (
-                "You are a disposable child agent inside Text Graphics Agent. "
-                "You never receive raw user text. Return only valid JSON. "
-                "Do not include markdown. Produce an AgentProposal-like object."
+                "You are a disposable child agent inside Text Graphics Agent.\n"
+                "You never receive raw user text — only a sanitized TaskSpec.\n"
+                "Your job is to produce a concrete, actionable AgentProposal.\n\n"
+                "CRITICAL RULES:\n"
+                "1. proposed_outputs must contain the ACTUAL deliverable content (code, text, analysis), "
+                "not a description of what you will do. If the task asks to implement a game, "
+                "put the complete code in proposed_outputs.\n"
+                "2. evidence must be file paths from allowed_scopes (e.g. \"app/static/play.html\"), "
+                "NOT natural language sentences.\n"
+                "3. proposed_scopes must be from allowed_scopes only.\n"
+                "4. test_commands must be real executable commands (e.g. \"python tests/test.py\").\n"
+                "5. claim must state what you actually deliver, not what you plan to do.\n"
+                "6. Stay on topic — drifting from the objective will be rejected as goal_drift.\n"
+                "7. evidence must be file paths only (e.g. \"app/static/play.html\"), not sentences.\n\n"
+                "Return ONLY valid JSON. No markdown. No code fences. No commentary."
             ),
         },
         {
             "role": "user",
             "content": (
-                "Clean TaskSpec follows as JSON. Generate JSON with keys: claim, evidence, "
-                "proposed_scopes, proposed_outputs, required_anchor_text, test_commands, confidence. "
-                "Use only allowed scopes. Preserve required anchors. "
+                "Generate an AgentProposal JSON for this TaskSpec.\n"
+                "Required keys: claim, evidence, proposed_scopes, proposed_outputs, "
+                "required_anchor_text, test_commands, confidence.\n\n"
+                "Remember:\n"
+                "- evidence = file paths from allowed_scopes (not sentences)\n"
+                "- proposed_outputs = actual deliverable content (not descriptions)\n"
+                "- test_commands = real executable commands\n"
+                "- Stay on topic; a proposal about a different problem will be rejected as goal_drift.\n\n"
                 "Clean TaskSpec: " + json.dumps(task_payload, ensure_ascii=False)
+            ),
+        },
+    ]
+
+
+def repair_messages(
+    task: TaskSpec,
+    previous_output: dict[str, Any],
+    violations: list[str] | tuple[str, ...],
+) -> list[dict[str, str]]:
+    task_payload = {
+        "task_id": task.task_id,
+        "objective": task.objective,
+        "allowed_scopes": task.allowed_scopes,
+        "required_anchors": task.required_anchors,
+        "requires_tests": task.requires_tests,
+        "mother_notes": task.mother_notes,
+    }
+    repair_payload = {
+        "task": task_payload,
+        "previous_output": previous_output,
+        "violations": list(violations),
+    }
+    return [
+        {
+            "role": "system",
+            "content": (
+                "You repair a rejected AgentProposal JSON inside Text Graphics Agent.\n"
+                "You never receive raw user text. Return ONLY valid JSON. No markdown.\n\n"
+                "FIX THE SPECIFIC VIOLATIONS:\n"
+                "- evidence_scope_escape / evidence_path_traversal: change evidence to file paths from allowed_scopes\n"
+                "- goal_drift: align claim and outputs with the objective's goal markers\n"
+                "- bypass_language: remove any language about skipping tests/approval\n"
+                "- missing_evidence: add file paths from allowed_scopes as evidence\n"
+                "- missing_test_commands: add real executable test commands\n"
+                "- scope_escape: change proposed_scopes to only use allowed_scopes\n\n"
+                "Do NOT change parts that were not rejected. Keep proposed_outputs as actual content."
+            ),
+        },
+        {
+            "role": "user",
+            "content": (
+                "Fix the rejected proposal. Return corrected JSON with keys: claim, evidence, "
+                "proposed_scopes, proposed_outputs, required_anchor_text, test_commands, confidence.\n"
+                "Fix ONLY the listed violations. Keep allowed scopes only.\n\n"
+                "Repair packet: " + json.dumps(repair_payload, ensure_ascii=False)
             ),
         },
     ]
@@ -278,22 +360,22 @@ def call_live_llm(
                 payload = json.loads(response.read().decode("utf-8"))
             candidate = payload["candidates"][0]
             content = candidate["content"]["parts"][0]["text"]
-            return json.loads(content)
+            return parse_model_json_object(content)
         except urllib.error.HTTPError as exc:
             error_body = exc.read().decode("utf-8", errors="replace")
             raise RuntimeError(f"Gemini API HTTP {exc.code}: {error_body}") from exc
 
     else:
-        endpoint = base_url if base_url else "https://api.openai.com/v1"
+        endpoint = resolve_openai_compatible_endpoint(provider, base_url)
         url = endpoint.rstrip("/") + "/chat/completions"
-        model_name = model if model else "gpt-4o-mini"
+        model_name = resolve_openai_compatible_model(provider, model)
 
         body = {
             "model": model_name,
             "messages": messages,
             "response_format": {"type": "json_object"},
             "temperature": 0.2,
-            "max_tokens": 800,
+            "max_tokens": 4096,
             "stream": False,
         }
 
@@ -310,10 +392,36 @@ def call_live_llm(
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 payload = json.loads(response.read().decode("utf-8"))
             content = payload["choices"][0]["message"]["content"]
-            return json.loads(content)
+            if not content or not content.strip():
+                raise ValueError(f"LLM returned empty content. Full response: {json.dumps(payload, ensure_ascii=False)[:500]}")
+            return parse_model_json_object(content)
         except urllib.error.HTTPError as exc:
             error_body = exc.read().decode("utf-8", errors="replace")
             raise RuntimeError(f"OpenAI-Compatible API HTTP {exc.code}: {error_body}") from exc
+
+
+def parse_model_json_object(content: str) -> dict[str, Any]:
+    """Parse provider JSON output, accepting common fenced-object wrappers."""
+    text = content.strip()
+    try:
+        parsed = json.loads(text)
+    except JSONDecodeError:
+        if text.startswith("```"):
+            lines = text.splitlines()
+            if lines and lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].strip() == "```":
+                lines = lines[:-1]
+            text = "\n".join(lines).strip()
+        if not text.startswith("{"):
+            start = text.find("{")
+            end = text.rfind("}")
+            if start != -1 and end != -1 and start < end:
+                text = text[start:end + 1]
+        parsed = json.loads(text)
+    if not isinstance(parsed, dict):
+        raise ValueError("model output JSON must be an object")
+    return parsed
 
 
 def proposal_from_model_json(
@@ -329,7 +437,7 @@ def proposal_from_model_json(
         evidence = _string_tuple(data.get("evidence"))
         proposed_scopes = _string_tuple(data.get("proposed_scopes"))
         proposed_outputs = _string_tuple(data.get("proposed_outputs"))
-        required_anchor_text = str(data.get("required_anchor_text") or "")
+        required_anchor_text = _string_text(data.get("required_anchor_text"))
         test_commands = _string_tuple(data.get("test_commands"))
         confidence = float(data.get("confidence", 0.0))
     except (TypeError, ValueError):
@@ -373,6 +481,16 @@ def _string_tuple(value: Any) -> tuple[str, ...]:
     if isinstance(value, list | tuple):
         return tuple(str(item) for item in value)
     return (str(value),)
+
+
+def _string_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list | tuple):
+        return " ".join(str(item) for item in value)
+    return str(value)
 
 
 def _rate(numerator: int, denominator: int) -> float:

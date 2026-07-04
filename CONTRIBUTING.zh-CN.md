@@ -13,6 +13,10 @@ Text Graphics Agent 当前是研究原型。贡献有价值的前提是守住项
 - 改进文档，但不扩大安全声明。
 - 增加 adapter，同时确保原始用户文本不进入子 agent 上下文。
 - 将 benchmark 输出导出为论文表格可用的 JSONL records。
+- 为真实场景编写自定义 `BaseSpecialist`（如代码审查、测试运行器）。
+- 向 `ToolRegistry` 添加自定义工具（如 `run_test`、`http_get`）。
+- 改进意图防火墙的更多语言关键词覆盖。
+- 添加中英文之外的 i18n 翻译。
 
 ## 非目标
 

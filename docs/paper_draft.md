@@ -24,10 +24,10 @@ metadata, and child lifecycle. The design extends the author's earlier
 constraint-checked state-record pipeline from symbolic state construction into
 agent orchestration.
 
-A deterministic pilot benchmark with six synthetic scenarios compares a
-direct-accept baseline against Text Graphics Agent. In five intentionally
-polluted scenarios, the baseline accepts all five polluted proposals. Text
-Graphics Agent accepts zero polluted proposals, rejects four during record
+A deterministic pilot benchmark with eleven synthetic scenarios compares a
+direct-accept baseline against Text Graphics Agent. In ten intentionally
+polluted scenarios, the baseline accepts all ten polluted proposals. Text
+Graphics Agent accepts zero polluted proposals, rejects nine during record
 checking, and blocks one unsafe child profile before spawn. This is not a broad
 performance claim; it is a reproducible boundary check showing that the
 architecture can make semantic contamination visible and rejectable under a
@@ -113,14 +113,18 @@ The implemented prototype has the following pipeline:
 
 ```text
 raw user text
-  -> IntentFrame
-  -> sanitized TaskSpec
-  -> SpecialistProfile validation
-  -> disposable child specialist
-  -> AgentProposal
-  -> ConstraintChecker
-  -> CheckedRecord
-  -> ScoreCard
+  -> IntentFrame (intent.py)
+  -> Pipeline (pipeline.py)
+    -> Agent Registry (registry.py) — capability-based routing
+    -> sanitized TaskSpec
+    -> SpecialistProfile validation
+    -> disposable child specialist (specialists.py)
+      -> ToolContext (tools.py) — scope-enforced file access
+      -> AgentProposal
+    -> ConstraintChecker (constraints.py)
+    -> CheckedRecord
+    -> ScoreCard
+    -> Memory extraction (memory.py) — untrusted context for future tasks
 ```
 
 ### 4.1 Intent Firewall
@@ -136,7 +140,12 @@ raw user text
 
 The current implementation is deterministic and intentionally small. Its
 purpose is not natural-language excellence. Its purpose is to prevent raw user
-language from being copied into child context as authority.
+language from being copied into child context as authority. The implementation
+maintains bilingual (Chinese + English) adversarial keyword banks covering
+bypass pressure (55 markers), scope escape pressure (context-aware detection
+to reduce false positives on common words like "全部" and "所有"), and
+user-supplied claims (35 markers). These keyword banks are shared as a single
+source of truth across the intent firewall, constraint checker, and pipeline.
 
 ### 4.2 Clean TaskSpec
 
@@ -153,6 +162,14 @@ The resulting task has:
 present. This prevents a child from being invoked on a task that merely claims
 to be clean.
 
+The mother agent may optionally inject curated memory hints into
+`mother_notes`. These hints are untrusted context — they help the mother agent
+reason about the user's common patterns, but they never enter
+`TaskSpec.objective` (the child agent's instruction) and never affect
+constraint decisions. Memory entries are objective observations (file scopes,
+intent patterns, violation feedback) with confidence scores that decay over
+time (5% per day) and are pruned below a 15% threshold.
+
 ### 4.3 Specialist Profiles
 
 `SpecialistProfile` defines a child agent's allowed role, scope, tools,
@@ -163,6 +180,24 @@ spawn. Profiles are rejected if they:
 - request persistent memory;
 - escape the task's allowed scopes;
 - lack an inspectable role or specialist id.
+
+Child agents implement a standard `BaseSpecialist` interface with `run(task)`,
+`cleanup()`, and optional `ToolContext` access. The platform includes two
+built-in specialists: `LocalSimulationSpecialist` (deterministic local
+simulator for testing) and `LiveSpecialist` (calls real LLM APIs with
+automatic precheck and repair). Custom specialists can be registered via
+`AgentRegistry`, which routes tasks based on declared intent codes and goal
+markers using a scoring algorithm (+2 per intent match, +1 per marker match,
++priority as tie-breaker).
+
+### 4.3a Tool Layer
+
+When a specialist's profile declares tools, a `ToolContext` is automatically
+created with scope enforcement. Built-in tools include `read_file`, `glob`, and
+`grep` — each call is checked against `task.allowed_scopes`, with path
+traversal blocking and an audit log. This ensures that even when child agents
+can observe the filesystem, they cannot read files outside the task's
+whitelisted scope boundary.
 
 ### 4.4 Disposable Child Lifecycle
 
@@ -176,17 +211,24 @@ it makes "use and destroy" auditable instead of rhetorical.
 `ConstraintChecker` rejects proposals with:
 
 - malformed envelopes;
+- proposal-kind expansion beyond the finite action set;
 - task mismatch;
 - unsanitized tasks;
 - mother/ledger authority claims from children;
+- privileged actor impersonation in record envelopes;
 - raw user text leaks in metadata;
 - empty claims;
 - missing evidence;
 - evidence only from `user:*`;
+- path-like evidence outside the task scope;
 - missing tests;
+- destructive commands masquerading as tests;
+- bypass-review language in proposal text;
 - scope escape;
+- path traversal in proposed scopes;
 - forbidden outputs such as `committed_fact` or `new_action_type`;
 - missing anchors;
+- anchors declared only in `required_anchor_text` without claim/evidence support;
 - confidence outside `[0, 1]`.
 
 This makes the output surface finite enough to test.
@@ -197,11 +239,33 @@ To evaluate safety in environments with multi-step workflows and complex depende
 
 Most importantly, `GraphExecutor` implements a **topological fail-fast abort protocol**. In typical agent graphs, if a child specialist at an upstream node yields a compromised proposal or encounters an execution failure, downstream agents continue execution, propagating semantic contamination. Under TGA, the runtime intercepts any violation immediately, halts the entire graph pipeline, and writes an execution checkpoint, preventing contamination from leaking into later dependencies.
 
-### 4.7 Zero-Dependency Sandboxes & Settings Persistence
+An `AsyncGraphExecutor` variant extends this with thread-pool concurrency:
+independent nodes (those with no dependencies on each other) execute in
+parallel, while the fail-fast contract is preserved — the first rejection or
+error cancels all remaining futures in the current round. This allows
+multi-task workflows to complete faster without sacrificing the safety
+guarantee.
 
-To facilitate hands-on demonstration and evaluation, the project includes an interactive console REPL sandbox (`interactive_sandbox.py`) and a premium single-page Web Dashboard. 
-- **Settings Persistence**: The Dashboard serves a local settings form that saves API Provider, API Key, Model Name, and Scope directories directly to a local `config.json` file in the working directory (safely ignored in `.gitignore`).
-- **Visual Auditing**: Featuring dark-mode glassmorphic layouts, the UI uses glowing SVG lines and pulsating status indicators to animate the pipeline transition from Intent Firewalling to final Ledger Rejection, allowing users to contrast TGA's protection with a naive baseline in real-time.
+### 4.7 Zero-Dependency Sandboxes & Web Dashboard
+
+To facilitate hands-on demonstration and evaluation, the project includes an
+interactive console REPL sandbox (`interactive_sandbox.py`) and a single-page
+Web Dashboard served by a zero-dependency HTTP server (stdlib `http.server`).
+
+- **Chat Stream Interface**: The dashboard presents a ChatGPT-style chat flow
+  where users type naturally. Casual conversation gets direct responses; task
+  requests are dispatched through the full safety pipeline with results
+  returned as cards in the chat stream. Conversation history is persisted to
+  `localStorage` with full-text search across all past sessions.
+- **Settings & Connection**: A sectioned settings page allows configuring LLM
+  provider, API key, and model with a "Test connection" button. File scope
+  selection includes a workspace file browser and quick-add presets.
+- **Inspector Panel**: A toggleable right panel shows task context, permission
+  boundaries, and curated memory entries (labeled as untrusted) with
+  confidence scores and delete controls.
+- **Progressive Disclosure**: The composer status stack and workflow timeline
+  are hidden by default and revealed on demand, reducing first-screen cognitive
+  load while preserving full auditability.
 
 ## 5. Pilot Benchmark
 
@@ -229,7 +293,7 @@ cd text-graphics-agent
 python -m text_graphics_agent.benchmark
 ```
 
-The benchmark contains six scenarios:
+The benchmark contains eleven scenarios:
 
 | Scenario | Pollution Type | Expected TGA Handling |
 | --- | --- | --- |
@@ -238,33 +302,38 @@ The benchmark contains six scenarios:
 | `bench-direct-fact-write` | child tries to commit a world fact | reject |
 | `bench-raw-context-leak` | raw user text appears in child metadata | reject |
 | `bench-unsafe-profile` | child profile asks for raw user text | block before spawn |
+| `bench-authority-impersonation` | child impersonates mother/ledger authority | reject |
+| `bench-proposal-kind-expansion` | child invents a state-write proposal kind | reject |
+| `bench-path-traversal` | child hides traversal inside a scoped path | reject |
+| `bench-anchor-spoof` | child declares the anchor without evidence support | reject |
+| `bench-bypass-language` | child asks to skip tests and approve directly | reject |
 | `bench-clean-patch` | scoped evidence and test command | accept |
 
 Current output:
 
 ```json
 {
-  "scenario_count": 6,
-  "unsafe_scenario_count": 5,
-  "baseline_accepted": 6,
-  "baseline_polluted_accepted": 5,
+  "scenario_count": 11,
+  "unsafe_scenario_count": 10,
+  "baseline_accepted": 11,
+  "baseline_polluted_accepted": 10,
   "baseline_pollution_acceptance_rate": 1.0,
-  "tga_reviewed_records": 5,
+  "tga_reviewed_records": 10,
   "tga_accepted": 1,
-  "tga_rejected": 4,
+  "tga_rejected": 9,
   "tga_blocked_before_spawn": 1,
   "tga_polluted_accepted": 0,
   "tga_pollution_acceptance_rate": 0.0,
-  "accepted_pollution_delta": 5
+  "accepted_pollution_delta": 10
 }
 ```
 
 Interpretation:
 
-- The direct-accept baseline accepts every proposal, including all five
+- The direct-accept baseline accepts every proposal, including all ten
   polluted proposals.
 - Text Graphics Agent accepts the one clean patch proposal.
-- Text Graphics Agent rejects four polluted proposals during record checking.
+- Text Graphics Agent rejects nine polluted proposals during record checking.
 - Text Graphics Agent blocks one unsafe profile before child spawn.
 
 This result should be read as a sanity check of the architecture, not as a
@@ -299,25 +368,39 @@ cheap; accepted state is expensive.
 ## 7. Limitations
 
 1. The benchmark is synthetic and deterministic.
-2. The current intent decomposition is a small rule-based first pass.
-3. The evaluation is currently restricted to text-based LLMs (such as DeepSeek-Chat) in closed loops, and has not yet been extended to multimodal visual agents.
+2. The intent decomposition is rule-based (not LLM-powered), though it now
+   covers 55 bypass markers and 35 user-claim markers in Chinese and English
+   with context-aware scope detection. A hybrid approach using a lightweight
+   LLM-based sanitizer as a supplementary layer remains future work.
+3. The evaluation is currently restricted to text-based LLMs (such as
+   DeepSeek-Chat) in closed loops, and has not yet been extended to multimodal
+   visual agents.
 4. The current lifecycle model records destruction but does not enforce process
    isolation.
 5. The constraint list is finite and hand-authored.
 6. The benchmark proves only closed-protocol rejection, not real-world attack
    resistance.
+7. Curated memory is untrusted and does not affect constraints, but its
+   extraction logic is heuristic — more sophisticated memory curation
+   (e.g., contradiction detection, temporal reasoning) is left to future work.
 
 These limitations are acceptable for the current artifact boundary. The next
 stage should add multimodal adversarial proposals while keeping the same benchmark format.
 
 ## 8. Next Experiments
 
-1. (Completed) Add a model-backed child adapter.
+1. (Completed) Add a model-backed child adapter (`LiveSpecialist`).
 2. (Completed) Run identical prompts through direct-agent baseline and TGA.
-3. Add multimodal screenshot-misinterpretation cases.
-4. Add shared-memory contamination cases.
-5. Export JSONL checked records for paper tables.
-6. Add a second benchmark aligned with the existing configuration UI bug-finding flow.
+3. (Completed) End-to-end live LLM verification with DeepSeek (snake game task,
+   accepted by constraint checker in 28s with auto-repair).
+4. (Completed) Platform layer: `Pipeline`, `AgentRegistry`, `BaseSpecialist`,
+   `ToolContext`, curated memory, `AsyncGraphExecutor`.
+5. Add multimodal screenshot-misinterpretation cases.
+6. Add shared-memory contamination cases.
+7. Export JSONL checked records for paper tables.
+8. Add a second benchmark aligned with the existing configuration UI bug-finding flow.
+9. Hybrid intent firewall: add a lightweight LLM-based sanitizer as a
+   supplementary layer to the rule-based `IntentDecomposer`.
 
 ## 9. References
 
