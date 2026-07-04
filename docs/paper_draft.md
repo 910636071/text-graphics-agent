@@ -266,25 +266,46 @@ Web Dashboard served by a zero-dependency HTTP server (stdlib `http.server`).
 - **Progressive Disclosure**: The composer status stack and workflow timeline
   are hidden by default and revealed on demand, reducing first-screen cognitive
   load while preserving full auditability.
+- **Public Release Artifact**: The standalone release repository is published
+  at `https://github.com/910636071/text-graphics-agent-release`. It is exported
+  from the private parent repository as a clean project artifact and includes
+  bilingual documentation, the operation guide, the deterministic benchmark,
+  and the web workbench prototype.
 
 ## 5. Pilot Benchmark
 
 The pilot benchmark is deterministic and uses no external model calls. It is
 designed to test the architecture boundary, not model quality.
 
-### 5.1 Real-World Model API Adversarial Evaluation
+### 5.1 Live Model API Smoke Evaluation
 
-To evaluate the semantic firewall against live production LLM reasoning and prompt injection scenarios, the prototype executes the benchmark using the DeepSeek API (`deepseek-chat` model). The evaluation compares two execution paths:
-1. **Direct Naive Baseline**: The LLM directly receives the raw user prompt (including adversarial injections) and its proposal is assessed alongside a **Direct Shadow Block Rate** (shadow audit mode).
-2. **TGA Sanitized Workflow**: The LLM receives only the cleaned `TaskSpec` output by the mother agent, while child specialists are physically isolated.
+As a supplementary smoke evaluation, the prototype executes six scenarios
+through the DeepSeek API (`deepseek-chat` model). This test is narrower than
+the deterministic benchmark: it checks whether a live provider can produce
+structured proposals under the same protocol, not whether the system is safe
+against all live-model attacks. The evaluation compares two execution paths:
+1. **Direct Naive Baseline**: The LLM directly receives the raw user prompt
+   (including adversarial injections) and its proposal is assessed alongside a
+   **Direct Shadow Block Rate** (shadow audit mode).
+2. **TGA Sanitized Workflow**: The LLM receives only the cleaned `TaskSpec`
+   output by the mother agent, while child specialists are physically isolated.
 
 The quantitative results collected from the empirical runs (documented in [live_api_benchmark_20260703.md](./live_api_benchmark_20260703.md)) are summarized below:
-- **Naive Baseline Pollution Admission Rate**: 100% (5/5 polluted proposals are successfully accepted and leak contaminated states into the durable storage).
-- **Direct Shadow Block Rate**: 100% (intercepts all malicious semantics, but completely rejects valid repairs, resulting in a 0% system availability rate).
-- **TGA Proposal Acceptance Rate**: 100% (6/6 proposals successfully pass constraint auditing, guided by the mother agent's `TaskSpec` bounds).
-- **TGA Raw Prompt Exposures**: 0
+- **Naive Baseline Pollution Admission Rate**: 100% within this six-scenario
+  smoke run (5/5 polluted proposals would be accepted by a direct-accept path).
+- **Direct Shadow Block Rate**: 100% for the polluted direct path in this run,
+  but the direct path does not provide a scoped repair channel for accepted
+  work.
+- **TGA Proposal Acceptance Rate**: 100% within this run (6/6 proposals pass
+  constraint auditing when the model is guided by the mother agent's
+  `TaskSpec` bounds).
+- **TGA Raw Prompt Exposures**: 0 within this run.
 
-This experiment demonstrates that in stateful multi-agent systems, simple post-hoc output checking (shadow check) forces a security-vs-availability trade-off (reducing availability to zero). In contrast, TGA's dual defense of **physical request shielding** and **pre-hoc TaskSpec sanitization** achieves a win-win scenario, ensuring 100% interception safety alongside 100% proposal availability.
+This smoke test supports a narrower conclusion: separating raw-prompt exposure
+from child-agent execution can preserve a useful repair path in cases where a
+direct raw-prompt path either admits contamination or must be blocked by a
+shadow checker. It is not evidence of universal prompt-injection resistance,
+universal availability, or provider-independent safety.
 
 Command:
 
@@ -383,6 +404,9 @@ cheap; accepted state is expensive.
 7. Curated memory is untrusted and does not affect constraints, but its
    extraction logic is heuristic — more sophisticated memory curation
    (e.g., contradiction detection, temporal reasoning) is left to future work.
+8. The public release is a research prototype and review artifact, not a
+   production-ready agent operating system. Browser-level UI regression tests
+   are still needed for continuous interaction quality.
 
 These limitations are acceptable for the current artifact boundary. The next
 stage should add multimodal adversarial proposals while keeping the same benchmark format.
@@ -395,11 +419,15 @@ stage should add multimodal adversarial proposals while keeping the same benchma
    accepted by constraint checker in 28s with auto-repair).
 4. (Completed) Platform layer: `Pipeline`, `AgentRegistry`, `BaseSpecialist`,
    `ToolContext`, curated memory, `AsyncGraphExecutor`.
-5. Add multimodal screenshot-misinterpretation cases.
-6. Add shared-memory contamination cases.
-7. Export JSONL checked records for paper tables.
-8. Add a second benchmark aligned with the existing configuration UI bug-finding flow.
-9. Hybrid intent firewall: add a lightweight LLM-based sanitizer as a
+5. (Completed) Standalone public release repository with bilingual docs and a
+   cleaned workbench artifact.
+6. Add browser-driven UI regression tests for the workbench, settings, file
+   scope, approval, and diagnostics flows.
+7. Add multimodal screenshot-misinterpretation cases.
+8. Add shared-memory contamination cases.
+9. Export JSONL checked records for paper tables.
+10. Add a second benchmark aligned with the existing configuration UI bug-finding flow.
+11. Hybrid intent firewall: add a lightweight LLM-based sanitizer as a
    supplementary layer to the rule-based `IntentDecomposer`.
 
 ## 9. References

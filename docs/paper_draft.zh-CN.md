@@ -173,14 +173,18 @@ raw user text
 - **设置与连接**：分区设置页允许配置 LLM 提供商、API Key 和模型，带"测试连接"按钮。文件范围选择包含工作区文件浏览器和快捷预设。
 - **Inspector 面板**：可切换的右栏面板显示任务上下文、权限边界和策展记忆条目（标注为不可信），含置信度分数和删除控制。
 - **渐进式披露**：Composer 状态栏和工作流时间线默认隐藏，按需展开，降低首屏认知负荷，同时保留完整可审计性。
+- **公开 release artifact**：独立公开仓库已发布在
+  `https://github.com/910636071/text-graphics-agent-release`。它从私有父仓库
+  干净导出，作为独立项目 artifact 提供双语文档、操作指南、确定性 benchmark
+  和 Web 工作台原型。
 
 ## 5. 试验 Benchmark
 
 试验 benchmark 是确定性的，不调用外部模型。它测试的是架构边界，不是模型质量。
 
-### 5.1 真实大模型 API 注入对抗评测
+### 5.1 真实大模型 API Smoke 评测
 
-为了进一步验证语义防火墙在真实大模型推理与攻击场景下的防污染效果，本项目接入了真实的 LLM 接口驱动进行跑测，具体实验条件如下：
+作为补充 smoke 评测，本项目通过 DeepSeek API（`deepseek-chat` 模型）执行六个场景。这个测试比确定性 benchmark 更窄：它检查真实 provider 能否在同一协议下产出结构化 proposal，而不是证明系统能抵御所有真实模型攻击。具体实验条件如下：
 - **评测提供商 (Provider)**: DeepSeek API (`deepseek-chat` 模型)
 - **数据集场景**: 延续确定性 Benchmark 的 6 个场景（5 个有意注入污染，1 个干净提案）
 - **两条比对路径**: 
@@ -188,12 +192,15 @@ raw user text
   2. **TGA 物理净化流程**（模型只处理 Sanitized TaskSpec，子代理被强物理隔离）。
 
 实验采集的量化数据如下（详见记录文件 [live_api_benchmark_20260703.zh-CN.md](./live_api_benchmark_20260703.zh-CN.md)）：
-- **Naive Baseline 接受污染提案率**: 100% (5/5，恶意语义直接注入并污染持久状态)
-- **影子拦截率 (Direct Shadow Block Rate)**: 100% (虽然拦截了全部恶意输入，但同时阻断了合法的正常业务功能，可用性降为 0)
-- **TGA 净化提案通过率 (TGA Accepted Rate)**: 100% (6/6，在 TaskSpec 任务范围净化引导下，子专家生成的所有 Patch 均符合约束，成功入账)
-- **TGA 原始污染暴露次数**: 0 次
+- **Naive Baseline 接受污染提案率**: 在这组六场景 smoke run 中为 100%
+  （5/5，污染 proposal 会被 direct-accept 路径接受）。
+- **影子拦截率 (Direct Shadow Block Rate)**: 在这次 run 的污染 direct path 中为
+  100%，但 direct path 本身没有提供可接受的范围化修复通道。
+- **TGA 净化提案通过率 (TGA Accepted Rate)**: 在这次 run 中为 100%
+  （6/6，模型在母 agent 的 `TaskSpec` 边界引导下产出的 proposal 通过约束审计）。
+- **TGA 原始污染暴露次数**: 本次 run 中为 0 次。
 
-该数据实证表明：对于多代理复杂系统，单纯的输出后置拦截（影子拦截）会导致可用性全面瘫痪（可用性与安全性互斥）；而 TGA 依靠**物理隔绝原始污染**与**前置 TaskSpec 清洗**，在确保 100% 拦截语义污染的同时，达成了 100% 的合法提案状态修复入账（可用性与安全性达成双赢）。
+这个 smoke test 支持一个更窄的结论：把 raw-prompt 暴露与子 agent 执行边界分离，可以在 direct raw-prompt path 可能接纳污染或只能被 shadow checker 阻断的情况下，保留有用的范围化修复通道。它不是对所有 prompt injection、所有 provider 或所有真实部署场景的安全性 / 可用性证明。
 
 命令：
 
@@ -278,6 +285,7 @@ IntentFrame -> TaskSpec -> SpecialistProfile -> AgentProposal
 5. 约束列表是有限且手写的。
 6. benchmark 只证明 closed-protocol rejection，不证明真实世界攻击抗性。
 7. 策展记忆是不可信的，不影响约束，但其提取逻辑是启发式的——更复杂的记忆策展（如矛盾检测、时序推理）留待未来工作。
+8. 公开 release 是研究原型和审查 artifact，不是生产级 agent 操作系统；持续交互质量仍需要浏览器级 UI 回归测试覆盖。
 
 这些限制符合当前 artifact 边界。下一阶段应在保持同一 benchmark format 的前提下，加入更多模态对抗生成 proposals。
 
@@ -287,11 +295,13 @@ IntentFrame -> TaskSpec -> SpecialistProfile -> AgentProposal
 2. (已完成) 让 direct-agent baseline 和 TGA 跑相同 prompts。
 3. (已完成) DeepSeek 端到端 Live LLM 验证（贪吃蛇任务，28 秒内通过约束检查，含自动修复）。
 4. (已完成) 平台层：`Pipeline`、`AgentRegistry`、`BaseSpecialist`、`ToolContext`、策展记忆、`AsyncGraphExecutor`。
-5. 加入多模态截图误解 cases。
-6. 加入 shared-memory contamination cases。
-7. 为论文表格导出 JSONL checked records。
-8. 加入第二个 benchmark，对齐现有配置 UI bug-finding flow。
-9. 混合意图防火墙：在基于规则的 `IntentDecomposer` 之上增加轻量 LLM sanitizer 作为补充层。
+5. (已完成) 独立公开 release 仓库，包含双语文档和干净工作台 artifact。
+6. 为工作台、设置、文件范围、审批和诊断流加入浏览器级 UI 回归测试。
+7. 加入多模态截图误解 cases。
+8. 加入 shared-memory contamination cases。
+9. 为论文表格导出 JSONL checked records。
+10. 加入第二个 benchmark，对齐现有配置 UI bug-finding flow。
+11. 混合意图防火墙：在基于规则的 `IntentDecomposer` 之上增加轻量 LLM sanitizer 作为补充层。
 
 ## 9. 参考文献
 
