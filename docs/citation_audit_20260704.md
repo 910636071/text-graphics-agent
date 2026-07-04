@@ -34,6 +34,12 @@ paper's terminology or threat model:
 - Guardrail and agent-safety systems: NVIDIA NeMo Guardrails, Guardrails AI,
   Meta Llama Guard, and Meta LlamaFirewall
 
+The audit also checked the author's own public repository lineage. The
+repositories `rgbd-safe-minimal`, `constraint-checked-state-records`, and
+`checked-state-benchmark` are useful provenance artifacts for the checked-record
+research direction, but they should be cited as author artifacts rather than
+treated as a standalone priority claim.
+
 ## Changes Made
 
 - Added the shared-state contamination and subagent inheritance papers to
@@ -44,6 +50,8 @@ paper's terminology or threat model:
   references.
 - Reworded `docs/market_survey.md` and `docs/market_survey.zh-CN.md` to avoid
   overclaiming what other guardrail systems do or do not support by default.
+- Added `docs/provenance_artifacts_20260704.md` and its Chinese mirror to record
+  timestamped public repository lineage.
 
 ## Remaining Risk
 

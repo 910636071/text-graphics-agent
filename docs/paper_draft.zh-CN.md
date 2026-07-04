@@ -280,6 +280,13 @@ IntentFrame -> TaskSpec -> SpecialistProfile -> AgentProposal
 2. 论文 2：finite concept-space / constraint interface theory；
 3. 本草稿：基于 checked records 的 disposable-agent orchestration。
 
+这条链路不只存在于本草稿中，也有公开仓库 artifact 支撑。2026-07-04 核对的
+GitHub metadata 显示：最早 clean-room seed artifact `rgbd-safe-minimal`
+创建于 2026-05-25；后续 `constraint-checked-state-records` artifact 创建于
+2026-05-25；`checked-state-benchmark` scaffold 创建于 2026-05-26。这些仓库在本文中
+作为作者 artifact 引用，用来说明 checked-record 研究线的连续性；它们不是法律意义上的
+优先权结论，也不能替代 prior-art review。
+
 两篇论文的连接很强，因为 agent 系统不需要另起一套"真理哲学"。它继承同一个原则：生成候选很便宜，接受状态很昂贵。
 
 ## 7. 局限
@@ -325,4 +332,6 @@ IntentFrame -> TaskSpec -> SpecialistProfile -> AgentProposal
 - CrewAI repository. https://github.com/crewAIInc/crewAI
 - Microsoft Agent Framework repository. https://github.com/microsoft/agent-framework
 - OpenAI Agents SDK repository. https://github.com/openai/openai-agents-python
+- Lijie Wang. "Minimal Symbolic Pipeline / rgbd-safe-minimal." https://github.com/910636071/rgbd-safe-minimal
 - Lijie Wang. "Constraint-Checked State Records." https://github.com/910636071/constraint-checked-state-records
+- Lijie Wang. "Checked-State Synthetic Benchmark." https://github.com/910636071/checked-state-benchmark

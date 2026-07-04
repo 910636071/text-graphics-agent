@@ -15,6 +15,8 @@ Start here:
 - [Market Survey](./market_survey.md) / [中文](./market_survey.zh-CN.md): what was absorbed from agent frameworks.
 - [Citation Audit 2026-07-04](./citation_audit_20260704.md) / [中文](./citation_audit_20260704.zh-CN.md):
   public-web citation and similarity audit trail.
+- [Public Provenance Artifacts 2026-07-04](./provenance_artifacts_20260704.md) /
+  [中文](./provenance_artifacts_20260704.zh-CN.md): timestamped public repository lineage.
 - [Live API Benchmark](./live_api_benchmark_20260703.md) / [中文](./live_api_benchmark_20260703.zh-CN.md): DeepSeek live-model
   smoke result.
 - [Extraction Map](./extraction_map.md) / [中文](./extraction_map.zh-CN.md): how the prototype maps back to the

@@ -404,6 +404,15 @@ The research program is therefore continuous:
 2. Paper 2: finite concept-space / constraint interface theory;
 3. this draft: disposable-agent orchestration over checked records.
 
+This lineage is backed by public repository artifacts rather than only this
+draft. GitHub metadata checked on 2026-07-04 records the first clean-room seed
+artifact `rgbd-safe-minimal` as created on 2026-05-25, the follow-up
+`constraint-checked-state-records` artifact as created on 2026-05-25, and the
+`checked-state-benchmark` scaffold as created on 2026-05-26. These repositories
+are cited as author artifacts that document continuity of the checked-record
+research line; they are not used as a standalone legal priority claim or as a
+substitute for prior-art review.
+
 The paper linkage is strong because the agent system does not need a separate
 philosophy of truth. It inherits the same principle: candidate generation is
 cheap; accepted state is expensive.
@@ -468,4 +477,6 @@ stage should add multimodal adversarial proposals while keeping the same benchma
 - CrewAI repository. https://github.com/crewAIInc/crewAI
 - Microsoft Agent Framework repository. https://github.com/microsoft/agent-framework
 - OpenAI Agents SDK repository. https://github.com/openai/openai-agents-python
+- Lijie Wang. "Minimal Symbolic Pipeline / rgbd-safe-minimal." https://github.com/910636071/rgbd-safe-minimal
 - Lijie Wang. "Constraint-Checked State Records." https://github.com/910636071/constraint-checked-state-records
+- Lijie Wang. "Checked-State Synthetic Benchmark." https://github.com/910636071/checked-state-benchmark

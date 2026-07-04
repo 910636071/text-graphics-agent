@@ -27,12 +27,17 @@
   Exploiting Subagent Spawn in Multi-Agent Networks"
 - Guardrail 和 agent-safety 系统：NVIDIA NeMo Guardrails、Guardrails AI、Meta Llama Guard、Meta LlamaFirewall
 
+本轮也核对了作者自己的公开仓库链条。`rgbd-safe-minimal`、`constraint-checked-state-records`
+和 `checked-state-benchmark` 适合作为 checked-record 研究方向的 provenance artifacts，
+但应作为作者 artifact 引用，而不是当成独立的全局优先权结论。
+
 ## 已做修改
 
 - 在 `docs/paper_draft.md` 和 `docs/paper_draft.zh-CN.md` 中补充 shared-state contamination 与 subagent inheritance 论文。
 - 将论文中的 "semantic contamination" 改写为 TGA 在本地语境中对 proposal-to-state failure surface 的命名，而不是声称创造一个全局新术语。
 - 在论文参考文献中补充 Guardrails / Llama Guard / LlamaFirewall 官方来源。
 - 调整 `docs/market_survey.md` 和 `docs/market_survey.zh-CN.md`，避免对其他 guardrail 系统作过强或不精确的否定。
+- 新增 `docs/provenance_artifacts_20260704.md` 及中文镜像，用来记录带时间戳的公开仓库研究链条。
 
 ## 剩余风险
 
