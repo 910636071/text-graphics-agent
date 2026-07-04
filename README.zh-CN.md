@@ -211,6 +211,7 @@ python tests/text_graphics_agent_test.py
 ## 论文与联系
 
 - 论文草稿：[docs/paper_draft.zh-CN.md](./docs/paper_draft.zh-CN.md)
+- 防御性公开：[docs/defensive_publication.zh-CN.md](./docs/defensive_publication.zh-CN.md)
 - 投稿准备：[docs/submission_prep.zh-CN.md](./docs/submission_prep.zh-CN.md)
 - 联系方式：Lijie Wang，独立研究者，<wanglijie100@gmail.com>
 

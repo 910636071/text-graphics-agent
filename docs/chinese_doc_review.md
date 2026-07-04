@@ -19,6 +19,7 @@
 | `docs/citation_audit_20260704.md` | `docs/citation_audit_20260704.zh-CN.md` | 已补 |
 | `docs/provenance_artifacts_20260704.md` | `docs/provenance_artifacts_20260704.zh-CN.md` | 已补 |
 | `docs/implementation_risk_register_20260704.md` | `docs/implementation_risk_register_20260704.zh-CN.md` | 已补 |
+| `docs/defensive_publication.md` | `docs/defensive_publication.zh-CN.md` | 已补 |
 | `docs/live_api_benchmark_20260703.md` | `docs/live_api_benchmark_20260703.zh-CN.md` | 已补 |
 | `docs/extraction_map.md` | `docs/extraction_map.zh-CN.md` | 已补 |
 | `docs/public_launch_checklist.md` | `docs/public_launch_checklist.zh-CN.md` | 已补 |
@@ -49,6 +50,7 @@
 - `docs/implementation_risk_register_20260704.md` / `docs/implementation_risk_register_20260704.zh-CN.md` — 吸收实现层评审，把 v0.2.0 风险收束为 evidence provenance、clean acceptance benchmark、写工具 staging、语义召回、memory retention、本地 workbench server 和多模态 evidence provenance。
 - `README.md` / `README.zh-CN.md`、`docs/paper_draft.md` / `docs/paper_draft.zh-CN.md`、`docs/architecture.md` / `docs/architecture.zh-CN.md` — 新增“双向治理协议”定义：人类意图需先稳定化为 `TaskSpec`，AI 输出需先通过确定性约束成为 `CheckedRecord`。
 - `README.md` / `README.zh-CN.md`、`docs/paper_draft.md` / `docs/paper_draft.zh-CN.md`、`docs/architecture.md` / `docs/architecture.zh-CN.md` — 新增 LLM 游戏适用边界：模型可叙述已批准事实或生成玩家可见文本，但 canonical game state 仍应来自规则、已验证记录或人类批准转换；不把当前 benchmark 扩大为游戏评测。
+- `docs/defensive_publication.md` / `docs/defensive_publication.zh-CN.md` — 新增防御性公开材料，用 prior-art 风格整理 TGA 核心组合、可替换命名、17 条约束、LLM 游戏状态边界和非主张范围，并明确其不是法律意见或专利申请。
 
 ## 2026-07-04 任务范围与公开文案收束复审
 

@@ -235,6 +235,7 @@ execution, live LLM repair, web API, and more.
 ## Paper & Contact
 
 - Paper draft: [docs/paper_draft.md](./docs/paper_draft.md)
+- Defensive publication: [docs/defensive_publication.md](./docs/defensive_publication.md)
 - Submission preparation: [docs/submission_prep.md](./docs/submission_prep.md)
 - Correspondence: Lijie Wang, Independent Researcher,
   <wanglijie100@gmail.com>
