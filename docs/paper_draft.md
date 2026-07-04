@@ -93,6 +93,12 @@ task authority without passing through the Intent Firewall, and the AI side
 cannot turn generated output into trusted state without passing through the
 constraint checker.
 
+The same principle extends to LLM games. A model may narrate approved facts,
+phrase dialogue, or propose player-facing text, but it should not directly
+author canonical game state. Game state should be produced by deterministic
+rules, validated records, or explicit human-approved transitions. This draft
+does not benchmark games; it states the shared authority boundary.
+
 Text Graphics Agent implements this as four rules:
 
 1. The mother agent compiles tasks, schedules children, and audits records. It

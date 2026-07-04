@@ -10,6 +10,12 @@ human intent is not treated as task authority until it is stabilized by the
 Intent Firewall into a `TaskSpec`, and AI output is not treated as trusted state
 until it passes deterministic constraint checks and becomes a `CheckedRecord`.
 
+The same state-authority boundary applies to LLM games. Models may narrate
+approved facts, phrase dialogue, or propose player-facing text, but canonical
+game state should be produced by rules, validated records, or explicit
+human-approved transitions. This document evaluates the agent workflow, not a
+game benchmark, but the authority split is the same design principle.
+
 ```text
 User Input
   → Intent Firewall (intent.py)

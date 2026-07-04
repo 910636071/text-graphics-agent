@@ -6,6 +6,8 @@
 
 TGA 定义了一种人类与 AI Agent 之间的双向治理协议：人类意图在经过 Intent Firewall 稳定化为 `TaskSpec` 前，不被视为任务权威；AI 输出在经过确定性约束检查成为 `CheckedRecord` 前，不被视为可信状态。
 
+同一条状态权威边界也适用于 LLM 游戏。模型可以叙述已批准事实、润色对白或提出面向玩家的文本，但 canonical game state 应由规则、已验证记录或明确的人类批准转换产生。本文档评估的是 agent 工作流，不是游戏 benchmark；但权威分离是同一条设计原则。
+
 ```text
 用户输入
   → 意图防火墙 (intent.py)

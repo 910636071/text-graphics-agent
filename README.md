@@ -37,6 +37,11 @@ the Intent Firewall into a `TaskSpec`, and AI output is not treated as trusted
 state until it passes deterministic constraint checks and becomes a
 `CheckedRecord`.
 
+The same authority separation applies to **LLM games**: a model may narrate
+approved facts, phrase dialogue, or propose player-facing text, but it must not
+directly author canonical game state. Game state should come from rules,
+validated records, or explicit human-approved transitions.
+
 In most agent frameworks, the LLM directly writes state — if it produces a
 hallucinated fact, a scope-escaping file edit, or a bypass instruction, that
 contamination becomes permanent. TGA solves this with a strict separation:
