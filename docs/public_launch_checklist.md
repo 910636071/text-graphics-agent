@@ -31,7 +31,7 @@ repository.
 - [x] `Pipeline` class extracts business logic from `gui.py` (558-line god-function → 16-line delegate).
 - [x] `BaseSpecialist` standard interface + `LocalSimulationSpecialist` + `LiveSpecialist`.
 - [x] `AgentRegistry` with capability-based routing.
-- [x] `ToolContext` with scope-enforced file tools (read_file, glob, grep).
+- [x] `ToolContext` with scope-enforced file tools (read_file, glob, grep, preview_text_patch).
 - [x] Curated memory (`memory.py`) — untrusted context, never affects constraints.
 - [x] `AsyncGraphExecutor` — concurrent + fail-fast.
 - [x] Chat stream UI (ChatGPT-style) with localStorage history + search.

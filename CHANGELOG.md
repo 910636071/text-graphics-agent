@@ -16,6 +16,9 @@ Chinese version: [变更日志](./CHANGELOG.zh-CN.md).
 - Added live chat routing for non-authoritative casual conversation when a
   provider key is configured. Chat replies do not create `TaskSpec`s, dispatch
   child agents, or produce `CheckedRecord`s.
+- Added token-efficient `PatchHunk` proposal records, strict `patch_hunks`
+  model-output parsing, patch-hunk constraint checks, and
+  `ToolContext.preview_text_patch()` for in-memory exact replacement previews.
 - Added `docs/test_reports/` with v0.2.0 candidate test reports in English and
   Chinese.
 - Added `examples/snake_game.html` as a reviewed local functional-acceptance
@@ -27,8 +30,8 @@ Chinese version: [变更日志](./CHANGELOG.zh-CN.md).
   production-ready agent operating system.
 - DeepSeek Snake is recorded as proposal smoke only; playable-game acceptance
   was performed on the local example artifact.
-- G3 write-tool staging and accepted-record commit semantics are not completed
-  in this release.
+- G3 has read-only patch preview coverage, but write-tool staging and
+  accepted-record commit semantics are not completed in this release.
 
 ## 2026-07-04 — Platform Transformation
 

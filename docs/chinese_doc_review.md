@@ -1,4 +1,4 @@
-﻿# 中文文档审查记录
+# 中文文档审查记录
 
 审查日期：2026-07-03；更新：2026-07-04（平台化改造后全量复审）。
 
@@ -36,7 +36,7 @@
 
 以下文档在平台化改造后已全量更新中英文版：
 
-- `README.md` / `README.zh-CN.md` — 重写为开源版，含快速开始、自定义 Specialist 示例、17 条约束检查、任务范围说明、策展记忆说明。
+- `README.md` / `README.zh-CN.md` — 重写为开源版，含快速开始、自定义 Specialist 示例、18 条约束检查、任务范围说明、策展记忆说明。
 - `CHANGELOG.md` / `CHANGELOG.zh-CN.md` — 新增 2026-07-04 条目，记录全部 6 个新模块、安全改进、UI/UX 升级、LLM 集成改进。
 - `docs/architecture.md` / `docs/architecture.zh-CN.md` — 新增平台层（Pipeline、Registry、Specialists、Tools、Memory、AsyncExecutor）和展示层描述。
 - `docs/paper_draft.md` / `docs/paper_draft.zh-CN.md` — 更新架构管线图、Intent Firewall（55+35 标记）、Clean TaskSpec（记忆注入）、Specialist Profiles（BaseSpecialist + 工具层）、Graph Executor（AsyncGraphExecutor）、Web Dashboard（聊天流）、局限、下一步实验。
@@ -50,7 +50,7 @@
 - `docs/implementation_risk_register_20260704.md` / `docs/implementation_risk_register_20260704.zh-CN.md` — 吸收实现层评审，把 v0.2.0 风险收束为 evidence provenance、clean acceptance benchmark、写工具 staging、语义召回、memory retention、本地 workbench server 和多模态 evidence provenance。
 - `README.md` / `README.zh-CN.md`、`docs/paper_draft.md` / `docs/paper_draft.zh-CN.md`、`docs/architecture.md` / `docs/architecture.zh-CN.md` — 新增“双向治理协议”定义：人类意图需先稳定化为 `TaskSpec`，AI 输出需先通过确定性约束成为 `CheckedRecord`。
 - `README.md` / `README.zh-CN.md`、`docs/paper_draft.md` / `docs/paper_draft.zh-CN.md`、`docs/architecture.md` / `docs/architecture.zh-CN.md` — 新增 LLM 游戏适用边界：模型可叙述已批准事实或生成玩家可见文本，但 canonical game state 仍应来自规则、已验证记录或人类批准转换；不把当前 benchmark 扩大为游戏评测。
-- `docs/defensive_publication.md` / `docs/defensive_publication.zh-CN.md` — 新增防御性公开材料，用 prior-art 风格整理 TGA 核心组合、可替换命名、17 条约束、LLM 游戏状态边界和非主张范围，并明确其不是法律意见或专利申请。
+- `docs/defensive_publication.md` / `docs/defensive_publication.zh-CN.md` — 新增防御性公开材料，用 prior-art 风格整理 TGA 核心组合、可替换命名、18 条约束、LLM 游戏状态边界和非主张范围，并明确其不是法律意见或专利申请。
 - `docs/implementation_risk_register_20260704.md` / `docs/implementation_risk_register_20260704.zh-CN.md` — 将 v0.2.0 从风险提醒收束为实现加固门槛，新增 evidence provenance、clean acceptance、写工具 staging、跨轮上下文和工作台可靠性的 readiness gates。
 - `docs/implementation_risk_register_20260704.md` / `docs/implementation_risk_register_20260704.zh-CN.md` — 记录本地 G1 候选实现：`EvidenceProvenance`、严格 provenance task flag、`read_file()` 全文件 sha256、严格模型 provenance 解析，以及覆盖截断 snippet、路径穿越、空 path、坏 snippet hash 和非 strict 畸形 provenance 的测试；明确仍未发布为 v0.2.0 能力。
 - `docs/paper_draft.md` / `docs/paper_draft.zh-CN.md`、`docs/packaging.md` / `docs/packaging.zh-CN.md`、`docs/operation_guide.md` / `docs/operation_guide.zh-CN.md` — 将 deterministic benchmark 对齐到本地 G2 候选结果：15 个场景、10 个污染场景、5 个 clean in-scope 场景、clean false-positive rate 0.0。
@@ -60,7 +60,7 @@
 
 - 中英文 README 已对齐为“用户需求 → 母 agent 澄清/拆解 → 受控 TaskSpec → 一次性子 agent 执行 → 确定性裁决”的产品叙事。
 - 中英文操作指南已把任务文件、验收锚点和工作区浏览统一到聊天旁的任务范围卡片，不再描述旧的输入区范围控件。
-- 中英文架构文档和公开清单已统一为 17 条确定性检查。
+- 中英文架构文档和公开清单已统一为 18 条确定性检查。
 - 公开文本明确不声称 AGI、不声称解决所有幻觉、不声称防止所有 prompt injection，只主张 protocol boundary / closed-protocol sanity check。
 - `CONTRIBUTING.md` / `CONTRIBUTING.zh-CN.md` — 新增自定义 Specialist、工具层、i18n 贡献方向。
 

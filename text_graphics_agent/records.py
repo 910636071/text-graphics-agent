@@ -9,6 +9,7 @@ from typing import Any, Literal
 
 Visibility = Literal["internal", "review", "public"]
 ProposalKind = Literal["analysis", "patch_plan", "expression", "test_plan"]
+PatchKind = Literal["text_replace"]
 
 
 def utc_now_iso() -> str:
@@ -81,6 +82,22 @@ class EvidenceProvenance:
 
 
 @dataclass(frozen=True)
+class PatchHunk:
+    """Token-efficient local patch proposal.
+
+    A child agent proposes only the small text span it wants to replace. The
+    checker/tool layer owns scope validation, hash checks, and in-memory patch
+    preview before any later write-capable stage can commit effects.
+    """
+
+    path: str
+    old_text: str
+    new_text: str
+    expected_sha256: str = ""
+    patch_kind: PatchKind = "text_replace"
+
+
+@dataclass(frozen=True)
 class AgentProposal:
     envelope: RecordEnvelope
     task_id: str
@@ -90,6 +107,7 @@ class AgentProposal:
     claim: str
     evidence: tuple[str, ...]
     evidence_provenance: tuple[EvidenceProvenance, ...] = ()
+    patch_hunks: tuple[PatchHunk, ...] = ()
     proposed_scopes: tuple[str, ...] = ()
     proposed_outputs: tuple[str, ...] = ()
     required_anchor_text: str = ""

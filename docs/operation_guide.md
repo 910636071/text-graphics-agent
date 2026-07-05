@@ -32,7 +32,7 @@ This guide is for the local web client at `http://127.0.0.1:8012/`.
    - Sanitizes the request into a `TaskSpec` (no raw user text reaches the child agent)
    - Routes to the best-matching specialist via `AgentRegistry`
    - The specialist generates an `AgentProposal`
-   - 17 constraint checks review the proposal
+   - 18 constraint checks review the proposal
    - Result appears as a card in the chat stream with accept/reject status and violation details
 4. If the proposal is rejected, the chat card shows specific fix suggestions for each violation type.
 5. Click "View details" on a task result card to see the full workflow timeline and audit trail.
@@ -51,7 +51,7 @@ Open **Settings** from the sidebar or topbar. Three sections:
 
 1. **Connection**: Select provider (DeepSeek, OpenAI, Gemini, Mock), enter API key, optional model name. Click "Test connection" to verify.
 2. **File Scope defaults**: Set fallback allowed file paths for tasks that do not specify a per-task scope. The daily workflow should usually use the right-side **Task Scope** panel beside the chat.
-3. **Safety Rules**: Toggle any of the 17 constraint checks on/off (requires approval for high-risk changes).
+3. **Safety Rules**: Toggle any of the 18 constraint checks on/off (requires approval for high-risk changes).
 
 ## Task scope beside chat
 

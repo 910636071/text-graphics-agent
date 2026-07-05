@@ -14,6 +14,9 @@ English version: [Changelog](./CHANGELOG.md).
   in-scope 场景，并单独报告 clean false-positive 指标。
 - 普通聊天在配置 provider key 后可走真实模型。聊天回复不会创建
   `TaskSpec`，不会派发子 agent，也不会生成 `CheckedRecord`。
+- 新增省 token 的 `PatchHunk` 提案记录、严格 `patch_hunks` 模型输出解析、
+  patch-hunk 约束检查，以及用于内存中精确替换预演的
+  `ToolContext.preview_text_patch()`。
 - 新增 `docs/test_reports/`，包含 v0.2.0 candidate 中英文测试报告。
 - 新增 `examples/snake_game.html` 作为本地功能验收过的审查产物。它不代表
   当前版本已经具备写能力子 agent 执行。
@@ -23,7 +26,8 @@ English version: [Changelog](./CHANGELOG.md).
 - 当前版本仍是研究原型和公开审查 artifact，不是 production-ready agent
   operating system。
 - DeepSeek 贪吃蛇只记录为 proposal smoke；可玩游戏验收发生在本地示例产物上。
-- G3 写工具 staging 与 accepted-record commit 语义尚未在本版本完成。
+- G3 已有只读 patch preview 覆盖，但写工具 staging 与 accepted-record commit
+  语义尚未在本版本完成。
 
 ## 2026-07-04 — 平台化改造
 

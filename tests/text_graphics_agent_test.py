@@ -32,7 +32,7 @@ from text_graphics_agent.gui import normalize_task_scopes, simulate_pipeline_pay
 from text_graphics_agent.intent import IntentDecomposer  # noqa: E402
 from text_graphics_agent.orchestrator import MotherAgent  # noqa: E402
 from text_graphics_agent.profiles import RegisteredSpecialist, SpecialistProfile  # noqa: E402
-from text_graphics_agent.records import AgentProposal, EvidenceProvenance, RecordEnvelope, TaskSpec  # noqa: E402
+from text_graphics_agent.records import AgentProposal, EvidenceProvenance, PatchHunk, RecordEnvelope, TaskSpec  # noqa: E402
 from text_graphics_agent.tools import ToolContext  # noqa: E402
 from text_graphics_agent.web_resources import HTML_CONTENT  # noqa: E402
 
@@ -1177,6 +1177,239 @@ def main() -> None:
     assert "previous_output" in repair_prompt[1]["content"]
     assert live_task.objective in repair_prompt[1]["content"]
     assert "Raw request:" not in repair_prompt[1]["content"]
+
+    patch_task = TaskSpec(
+        task_id="patch-hunk-001",
+        objective="Preview a small local Python import patch.",
+        allowed_scopes=("tests/text_graphics_agent_test.py",),
+        requires_evidence_provenance=True,
+        sanitized=True,
+        sanitized_provenance="mother_clean_v1",
+    )
+    patch_old_text = "import " + "hashlib"
+    patch_new_text = patch_old_text + "\nimport json as _json_for_patch_preview"
+    patch_hunk = PatchHunk(
+        path="tests/text_graphics_agent_test.py",
+        old_text=patch_old_text,
+        new_text=patch_new_text,
+        expected_sha256=expected_sha,
+    )
+    patch_proposal = AgentProposal(
+        envelope=RecordEnvelope.for_task(
+            actor="child:patcher",
+            target=patch_task.task_id,
+            cause="patch-preview",
+            scope_id="tests",
+        ),
+        task_id=patch_task.task_id,
+        child_agent_id="patcher-001",
+        child_role="code_patcher",
+        proposal_kind="patch_plan",
+        claim="A small import patch is proposed as a local PatchHunk.",
+        evidence=("tests/text_graphics_agent_test.py",),
+        evidence_provenance=(read_result.provenance,),
+        patch_hunks=(patch_hunk,),
+        proposed_scopes=("tests/text_graphics_agent_test.py",),
+        proposed_outputs=("patch_hunk:text_replace",),
+        test_commands=("python tests/text_graphics_agent_test.py",),
+        confidence=0.8,
+    )
+    patch_checked = checker.check(patch_task, patch_proposal)
+    assert patch_checked.accepted, patch_checked.violations
+
+    wildcard_patch_task = TaskSpec(
+        task_id="patch-hunk-wildcard-001",
+        objective="Preview a small local Python import patch under an allowed wildcard scope.",
+        allowed_scopes=("tests/*",),
+        requires_evidence_provenance=True,
+        sanitized=True,
+        sanitized_provenance="mother_clean_v1",
+    )
+    wildcard_scope_patch = AgentProposal(
+        envelope=RecordEnvelope.for_task(
+            actor="child:patcher-wildcard",
+            target=wildcard_patch_task.task_id,
+            cause="patch-preview-wildcard",
+            scope_id="tests",
+        ),
+        task_id=wildcard_patch_task.task_id,
+        child_agent_id="patcher-wildcard-001",
+        child_role="code_patcher",
+        proposal_kind="patch_plan",
+        claim="A small import patch is proposed under a wildcard declared scope.",
+        evidence=("tests/text_graphics_agent_test.py",),
+        evidence_provenance=(read_result.provenance,),
+        patch_hunks=(patch_hunk,),
+        proposed_scopes=("tests/*",),
+        proposed_outputs=("patch_hunk:text_replace",),
+        test_commands=("python tests/text_graphics_agent_test.py",),
+        confidence=0.8,
+    )
+    wildcard_scope_checked = checker.check(wildcard_patch_task, wildcard_scope_patch)
+    assert wildcard_scope_checked.accepted, wildcard_scope_checked.violations
+
+    preview_result = tool_context.preview_text_patch(
+        "tests/text_graphics_agent_test.py",
+        patch_hunk.old_text,
+        patch_hunk.new_text,
+        expected_sha256=expected_sha,
+    )
+    assert preview_result.ok, preview_result.error
+    assert preview_result.data["writes_disk"] is False
+    assert preview_result.data["sha256_before"] == expected_sha
+    assert preview_result.data["sha256_after"] != expected_sha
+    assert preview_result.provenance is not None
+    assert preview_result.provenance.tool_call_id.startswith("preview_text_patch:")
+    assert hashlib.sha256((ROOT / "tests/text_graphics_agent_test.py").read_bytes()).hexdigest() == expected_sha
+
+    bad_hash_preview = tool_context.preview_text_patch(
+        "tests/text_graphics_agent_test.py",
+        patch_hunk.old_text,
+        patch_hunk.new_text,
+        expected_sha256="0" * 64,
+    )
+    assert not bad_hash_preview.ok
+    assert "expected_sha256" in bad_hash_preview.error
+
+    too_large_preview = tool_context.preview_text_patch(
+        "tests/text_graphics_agent_test.py",
+        "x" * 8193,
+        patch_hunk.new_text,
+        expected_sha256=expected_sha,
+    )
+    assert not too_large_preview.ok
+    assert too_large_preview.error == "old_text is too large"
+
+    syntax_error_preview = tool_context.preview_text_patch(
+        "tests/text_graphics_agent_test.py",
+        patch_hunk.old_text,
+        "if broken syntax",
+        expected_sha256=expected_sha,
+    )
+    assert not syntax_error_preview.ok
+    assert "python syntax error" in syntax_error_preview.error
+
+    ambiguous_preview = tool_context.preview_text_patch(
+        "tests/text_graphics_agent_test.py",
+        "assert",
+        "assert  # patched",
+        expected_sha256=expected_sha,
+    )
+    assert not ambiguous_preview.ok
+    assert ambiguous_preview.error == "old_text is ambiguous"
+
+    scope_escape_hunk = PatchHunk(
+        path="../README.md",
+        old_text="old",
+        new_text="new",
+        expected_sha256="not-a-sha",
+    )
+    scope_escape_patch = AgentProposal(
+        envelope=RecordEnvelope.for_task(
+            actor="child:patcher",
+            target=patch_task.task_id,
+            cause="patch-scope-escape",
+            scope_id="tests",
+        ),
+        task_id=patch_task.task_id,
+        child_agent_id="patcher-002",
+        child_role="code_patcher",
+        proposal_kind="patch_plan",
+        claim="A patch hunk attempts to escape scope.",
+        evidence=("tests/text_graphics_agent_test.py",),
+        evidence_provenance=(read_result.provenance,),
+        patch_hunks=(scope_escape_hunk,),
+        proposed_scopes=("tests/text_graphics_agent_test.py",),
+        proposed_outputs=("patch_hunk:text_replace",),
+        test_commands=("python tests/text_graphics_agent_test.py",),
+        confidence=0.8,
+    )
+    scope_escape_checked = checker.check(patch_task, scope_escape_patch)
+    assert not scope_escape_checked.accepted
+    assert "patch_hunk_path_traversal:../README.md" in scope_escape_checked.violations
+    assert "patch_hunk_unscoped:../README.md" in scope_escape_checked.violations
+    assert "patch_hunk_missing_evidence:../README.md" in scope_escape_checked.violations
+    assert "bad_patch_hunk_expected_sha256:../README.md" in scope_escape_checked.violations
+
+    mismatched_hash_patch = AgentProposal(
+        envelope=RecordEnvelope.for_task(
+            actor="child:patcher",
+            target=patch_task.task_id,
+            cause="patch-hash-mismatch",
+            scope_id="tests",
+        ),
+        task_id=patch_task.task_id,
+        child_agent_id="patcher-003",
+        child_role="code_patcher",
+        proposal_kind="patch_plan",
+        claim="A patch hunk carries a hash that disagrees with evidence provenance.",
+        evidence=("tests/text_graphics_agent_test.py",),
+        evidence_provenance=(read_result.provenance,),
+        patch_hunks=(
+            PatchHunk(
+                path="tests/text_graphics_agent_test.py",
+                old_text=patch_old_text,
+                new_text=patch_new_text,
+                expected_sha256="0" * 64,
+            ),
+        ),
+        proposed_scopes=("tests/text_graphics_agent_test.py",),
+        proposed_outputs=("patch_hunk:text_replace",),
+        test_commands=("python tests/text_graphics_agent_test.py",),
+        confidence=0.8,
+    )
+    mismatched_hash_checked = checker.check(patch_task, mismatched_hash_patch)
+    assert not mismatched_hash_checked.accepted
+    assert "patch_hunk_expected_sha256_mismatch:tests/text_graphics_agent_test.py" in mismatched_hash_checked.violations
+
+    model_patch_proposal, model_patch_parse_ok = proposal_from_model_json(
+        {
+            "claim": "A model proposes a small scoped text patch.",
+            "evidence": ["tests/text_graphics_agent_test.py"],
+            "evidence_provenance": [
+                {
+                    "path": "tests/text_graphics_agent_test.py",
+                    "sha256": expected_sha,
+                    "tool_call_id": "read_file:000001",
+                }
+            ],
+            "patch_hunks": [
+                {
+                    "path": "tests/text_graphics_agent_test.py",
+                    "old_text": patch_old_text,
+                    "new_text": patch_new_text,
+                    "expected_sha256": expected_sha,
+                }
+            ],
+            "proposed_scopes": ["tests/text_graphics_agent_test.py"],
+            "proposed_outputs": ["patch_hunk:text_replace"],
+            "test_commands": ["python tests/text_graphics_agent_test.py"],
+            "confidence": 0.8,
+        },
+        task=patch_task,
+        child_id="api-patch-test",
+        cause="unit-test",
+    )
+    assert model_patch_parse_ok
+    assert model_patch_proposal.patch_hunks[0].expected_sha256 == expected_sha
+    assert checker.check(patch_task, model_patch_proposal).accepted
+
+    malformed_model_patch, malformed_model_patch_parse_ok = proposal_from_model_json(
+        {
+            "claim": "The model supplies a non-object patch hunk.",
+            "evidence": ["tests/text_graphics_agent_test.py"],
+            "patch_hunks": ["not-an-object"],
+            "proposed_scopes": ["tests/text_graphics_agent_test.py"],
+            "proposed_outputs": ["patch_hunk:text_replace"],
+            "test_commands": ["python tests/text_graphics_agent_test.py"],
+            "confidence": 0.8,
+        },
+        task=patch_task,
+        child_id="api-patch-nondict-test",
+        cause="unit-test",
+    )
+    assert not malformed_model_patch_parse_ok
+    assert malformed_model_patch.patch_hunks == ()
 
     # === Test: Custom Constraint Composition ===
     class ShortClaimConstraint(Constraint):

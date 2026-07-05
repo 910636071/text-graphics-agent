@@ -30,7 +30,7 @@
 - [x] `Pipeline` 类从 `gui.py` 提取业务逻辑（558 行上帝函数 → 16 行委托）。
 - [x] `BaseSpecialist` 标准接口 + `LocalSimulationSpecialist` + `LiveSpecialist`。
 - [x] `AgentRegistry` 基于能力的路由。
-- [x] `ToolContext` scope 强制检查的文件工具（read_file、glob、grep）。
+- [x] `ToolContext` scope 强制检查的文件工具（read_file、glob、grep、preview_text_patch）。
 - [x] 策展记忆（`memory.py`）——不可信上下文，绝不影响约束。
 - [x] `AsyncGraphExecutor`——并发 + fail-fast。
 - [x] 聊天流 UI（ChatGPT 风格）+ localStorage 历史搜索。

@@ -35,6 +35,8 @@ _RESERVED_AUTHORITY_TOKENS = {
     "system",
 }
 _ALLOWED_PROPOSAL_KINDS = {"analysis", "patch_plan", "expression", "test_plan"}
+_MAX_PATCH_OLD_TEXT_CHARS = 8_192
+_MAX_PATCH_NEW_TEXT_CHARS = 16_384
 
 #: Bypass language markers — the single source of truth lives in intent.py.
 #: We import it and add proposal-side-only markers that don't apply to user intent.
@@ -350,6 +352,67 @@ class ScopeConstraint(Constraint):
         return violations
 
 
+class PatchHunkConstraint(Constraint):
+    """Checks token-efficient patch hunks before any write-capable stage exists."""
+    constraint_id: str = "patch_hunk"
+
+    def check(self, task: TaskSpec, proposal: AgentProposal) -> list[str]:
+        violations: list[str] = []
+        if not proposal.patch_hunks:
+            return violations
+
+        if proposal.proposal_kind != "patch_plan":
+            violations.append("patch_hunks_require_patch_plan")
+
+        evidence_paths = {
+            _normalize_provenance_path(item)
+            for item in proposal.evidence
+            if _looks_like_scope_path(item)
+        }
+        provenance_hashes_by_path: dict[str, set[str]] = {}
+        for provenance in proposal.evidence_provenance:
+            provenance_hashes_by_path.setdefault(
+                _normalize_provenance_path(provenance.path),
+                set(),
+            ).add(provenance.sha256)
+
+        for hunk in proposal.patch_hunks:
+            path = _normalize_provenance_path(hunk.path)
+            display_path = hunk.path or "path"
+            if not path:
+                violations.append("bad_patch_hunk:path")
+                continue
+            if _scope_has_traversal(path):
+                violations.append(f"patch_hunk_path_traversal:{hunk.path}")
+            elif not _scope_allowed(path, task.allowed_scopes):
+                violations.append(f"patch_hunk_scope_escape:{hunk.path}")
+
+            if not _scope_allowed(path, proposal.proposed_scopes):
+                violations.append(f"patch_hunk_unscoped:{hunk.path}")
+            if path not in evidence_paths:
+                violations.append(f"patch_hunk_missing_evidence:{hunk.path}")
+
+            if hunk.patch_kind != "text_replace":
+                violations.append(f"patch_hunk_kind:{hunk.patch_kind}")
+            if not hunk.old_text:
+                violations.append(f"patch_hunk_missing_old_text:{display_path}")
+            if len(hunk.old_text) > _MAX_PATCH_OLD_TEXT_CHARS:
+                violations.append(f"patch_hunk_old_text_too_large:{display_path}")
+            if len(hunk.new_text) > _MAX_PATCH_NEW_TEXT_CHARS:
+                violations.append(f"patch_hunk_new_text_too_large:{display_path}")
+            if "\x00" in hunk.old_text or "\x00" in hunk.new_text:
+                violations.append(f"patch_hunk_nul_byte:{display_path}")
+            if hunk.expected_sha256 and not _is_sha256_hex(hunk.expected_sha256):
+                violations.append(f"bad_patch_hunk_expected_sha256:{display_path}")
+            elif (
+                hunk.expected_sha256
+                and path in provenance_hashes_by_path
+                and hunk.expected_sha256 not in provenance_hashes_by_path[path]
+            ):
+                violations.append(f"patch_hunk_expected_sha256_mismatch:{display_path}")
+        return violations
+
+
 class ForbiddenOutputConstraint(Constraint):
     """Ensures the child does not try to emit forbidden outputs (like writing direct facts)."""
     constraint_id: str = "forbidden_output"
@@ -443,6 +506,7 @@ class ConstraintChecker:
             TestCommandSafetyConstraint(),
             BypassLanguageConstraint(),
             ScopeConstraint(),
+            PatchHunkConstraint(),
             ForbiddenOutputConstraint(),
             AnchorConstraint(),
             GoalAlignmentConstraint(),

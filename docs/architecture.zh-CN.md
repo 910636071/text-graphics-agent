@@ -17,7 +17,7 @@ TGA 定义了一种人类与 AI Agent 之间的双向治理协议：人类意图
     → 子 Agent (specialists.py) — BaseSpecialist.run(task)
       → ToolContext (tools.py) — scope 强制检查的文件访问
       → AgentProposal
-    → 约束检查器 (constraints.py) — 17 条确定性检查
+    → 约束检查器 (constraints.py) — 18 条确定性检查
     → CheckedRecord (接受/拒绝)
   → 记忆提取 (memory.py) — 为未来任务积累不可信上下文
 ```
@@ -38,7 +38,7 @@ TGA 定义了一种人类与 AI Agent 之间的双向治理协议：人类意图
 4. **非法 scope 检查** — 绝对路径和路径穿越在派发前被拦截。
 5. **任务净化** — `MotherAgent.make_clean_task()` 生成不含原始用户文本的 `TaskSpec`。策展记忆可注入 `mother_notes`（但绝不注入 `objective`）。
 6. **子 Agent 执行** — 注册表根据 intent codes 选择最匹配的子 Agent。子 Agent 生成一个或多个 `AgentProposal`。
-7. **约束裁决** — `ConstraintChecker` 运行 17 条确定性检查。提案被接受或拒绝。
+7. **约束裁决** — `ConstraintChecker` 运行 18 条确定性检查。提案被接受或拒绝。
 8. **记忆提取** — 客观观察（scope、intent 模式、违规反馈）被存储供未来任务使用。
 
 ### 子 Agent 接口 (specialists.py)
@@ -82,6 +82,7 @@ Pipeline 调用 `registry.select(intent_codes, goal_markers)` 选择最佳匹配
 | `read_file(path)` | 路径检查 `allowed_scopes`；路径穿越拦截；最大 512KB |
 | `glob(pattern, base_dir)` | 基目录必须在 scope 内；每个匹配结果二次验证 |
 | `grep(pattern, base_dir)` | 同 glob；每行截断；最多 50 条结果 |
+| `preview_text_patch(path, old_text, new_text)` | 只在内存中预演精确替换；hash gate；拒绝模糊锚点；`.py` 文件执行 Python AST 语法检查 |
 
 每次调用记录在 `call_log` 审计日志中。违规时抛出 `ToolSecurityError`。
 
@@ -137,9 +138,14 @@ TGA v0.1.0 定义的是一次性任务工作流。子 Agent 的 accepted proposa
 
 ### 约束检查器 (constraints.py)
 
-17 条模块化检查，每条实现 `Constraint.check(task, proposal) -> list[str]`。约束可通过 `config.json` 的 `disabled_constraints` 字段动态禁用。
+18 条模块化检查，每条实现 `Constraint.check(task, proposal) -> list[str]`。约束可通过 `config.json` 的 `disabled_constraints` 字段动态禁用。
 
 检查器是**唯一**的状态写入守门人。没有提案能在不通过所有已启用约束的情况下变为已接受状态。
+
+补丁 hunk 检查是省 token 边界的一部分：需要改代码的子 Agent 可以提交小型
+`PatchHunk` 记录，但检查器会拒绝越界、缺少 evidence、过大、格式错误或未绑定
+`proposed_scopes` 的 hunk。`preview_text_patch()` 仍然是只读预演；真正写入仍需要后续
+accepted-record staging/commit 层。
 
 ## 展示层
 

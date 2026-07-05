@@ -48,7 +48,7 @@ instruction, that contamination can become permanent. TGA addresses this risk
 with a strict separation:
 
 - **Child agents propose** (`AgentProposal`) — they cannot write state.
-- **Constraint layer decides** (`ConstraintChecker`) — 17 deterministic checks
+- **Constraint layer decides** (`ConstraintChecker`) — 18 deterministic checks
   gate every proposal before it can become accepted state.
 - **Mother agent sanitizes** — raw user text never reaches child agents; they
   only see a cleaned `TaskSpec`.
@@ -104,7 +104,7 @@ User Input
 │       → BaseSpecialist.run(task) → AgentProposal     │
 │       → ToolContext (tools.py) for file access       │
 │    4. Constraint Checker (constraints.py)            │
-│       → 17 deterministic checks gate every proposal  │
+│       → 18 deterministic checks gate every proposal  │
 │    5. Result                                         │
 └─────────────────────────────────────────────────────┘
     │
@@ -122,16 +122,42 @@ User Input
 | Module | Role |
 |--------|------|
 | `intent.py` | Intent Firewall — decomposes raw text, detects contamination, extracts user claims |
-| `constraints.py` | 17 modular constraint checks (scope, evidence, authority, bypass, anchors, goal drift, confidence, ...) |
+| `constraints.py` | 18 modular constraint checks (scope, evidence, authority, patch hunks, bypass, anchors, goal drift, confidence, ...) |
 | `orchestrator.py` | Mother Agent — sanitizes tasks, dispatches specialists, aggregates scores |
 | `pipeline.py` | Orchestrates the full request workflow (chat → task → verdict) |
 | `registry.py` | Agent Registry — capability-based routing via intent codes + goal markers |
 | `specialists.py` | `BaseSpecialist` interface + `LocalSimulationSpecialist` + `LiveSpecialist` |
-| `tools.py` | `ToolContext` — scope-enforced file tools (read_file, glob, grep) |
+| `tools.py` | `ToolContext` — scope-enforced file tools (read_file, glob, grep, preview_text_patch) |
 | `memory.py` | Curated memory — untrusted context that helps the mother agent, never affects constraints |
 | `async_executor.py` | Concurrent graph executor with fail-fast safety |
 | `gui.py` | Zero-dependency HTTP server (stdlib only) |
 | `web_resources.py` | Single-page dashboard (chat stream, history, task scope panel, settings, inspector) |
+
+## Token-Efficient Patch Protocol
+
+For code work, TGA does not need a child agent to regenerate an entire file for
+every small change. A child can submit optional `PatchHunk` records on an
+`AgentProposal`:
+
+```json
+{
+  "path": "app/static/play.html",
+  "old_text": "the exact local snippet to replace",
+  "new_text": "the local replacement",
+  "expected_sha256": "optional full-file preimage hash",
+  "patch_kind": "text_replace"
+}
+```
+
+The deterministic layer then checks that every hunk is small, path-scoped,
+backed by evidence, tied to `proposed_scopes`, and optionally bound to the
+current file hash. `ToolContext.preview_text_patch()` can preview the replacement
+in memory, reject ambiguous anchors, reject hash mismatches, and run Python AST
+syntax validation for `.py` files. It does **not** write to disk.
+
+This is the current safe boundary: local patch proposals are auditable and cheap
+to transmit, while real write commits still require a future accepted-record
+staging/commit step.
 
 ## Write a Custom Specialist
 
@@ -193,7 +219,7 @@ pipeline = Pipeline(registry=registry)
 result = pipeline.submit("Check settings panel for bugs")
 ```
 
-## The 17 Constraint Checks
+## The 18 Constraint Checks
 
 | # | Constraint | What it blocks |
 |---|-----------|----------------|
@@ -214,6 +240,7 @@ result = pipeline.submit("Check settings panel for bugs")
 | 15 | Anchor | Missing or spoofed evidence-chain anchors |
 | 16 | Goal Alignment | Proposals that drift from the sanitized objective |
 | 17 | Confidence | Confidence scores outside [0.0, 1.0] |
+| 18 | Patch Hunk | Unscoped, oversized, ambiguous, or malformed local patch hunks |
 
 ## Curated Memory (Untrusted)
 

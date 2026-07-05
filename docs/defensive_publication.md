@@ -125,9 +125,9 @@ One implementation of the disclosed protocol performs the following steps:
     may assist future mother-agent reasoning but must not directly become child
     instructions or constraint decisions.
 
-## The 17 Deterministic Checks
+## The 18 Deterministic Checks
 
-The current TGA prototype implements 17 modular checks. The numbers are
+The current TGA prototype implements 18 modular checks. The numbers are
 descriptive, not limiting; equivalent implementations may combine or split
 checks while preserving the same acceptance boundary.
 
@@ -150,6 +150,7 @@ checks while preserving the same acceptance boundary.
 | 15 | Anchor | missing or spoofed evidence-chain anchors |
 | 16 | Goal Alignment | proposals that drift from the sanitized objective |
 | 17 | Confidence | confidence scores outside the accepted range |
+| 18 | Patch Hunk | unscoped, oversized, ambiguous, or malformed local patch hunks |
 
 ## LLM Game State Boundary
 

@@ -13,7 +13,7 @@ implementation boundary.
 | --- | --- | --- | --- |
 | P1 | Evidence provenance gap | `v0.1.0` evidence is mostly path strings checked for scope and traversal. A local `v0.2.0` candidate now has opt-in `EvidenceProvenance`, `ToolContext.read_file()` sha256 provenance, and strict-task tests, but this is not yet a released default. | Keep the schema, migrate real proposal producers toward provenance-carrying evidence, and decide which v0.2.0 task classes require `requires_evidence_provenance=True`. |
 | P1 | Clean-request false positives | `v0.1.0` had only one clean positive benchmark case. The local `v0.2.0` candidate now has five clean in-scope scenarios and reports clean false positives separately. | Keep the clean suite in the deterministic benchmark and expand it only when new constraints or task classes are added. |
-| P1 | Write-tool transaction boundary | Built-in `ToolContext` is read-only (`read_file`, `glob`, `grep`). The half-commit risk is not active in v0.1.0, but it becomes critical once write tools exist. | Before adding `write_file`, `run_command`, or patch tools, introduce a staging area. Writes must commit only after `CheckedRecord.accepted == true`; rejected or cancelled runs must discard staged effects. |
+| P1 | Write-tool transaction boundary | Built-in `ToolContext` remains non-mutating. A local `v0.2.0` candidate adds `PatchHunk` proposal records and `preview_text_patch()` for in-memory patch previews, but still does not write files. The half-commit risk becomes critical only once write/commit tools exist. | Keep patch previews read-only. Before adding `write_file`, `run_command`, or a patch commit tool, introduce a staging area. Writes must commit only after `CheckedRecord.accepted == true`; rejected or cancelled runs must discard staged effects. |
 | P2 | Intent firewall recall gap | The first pass is deterministic marker/rule based. This is deliberate, but metaphorical bypass language may not be recalled. | Add optional semantic recall as a non-authoritative hint layer. Embedding or classifier output may raise suspicion or ask for clarification, but must not bypass deterministic constraints. |
 | P2 | Memory decay semantics | Curated memory is untrusted and does not affect constraints. Calendar decay is acceptable for weak hints, not for future security policy. | If memory is ever used for safety routing, add turn/event-aware retention and separate safety feedback retention from ordinary preference decay. |
 | P2 | Local workbench server boundary | The GUI uses a standard-library local server with `ThreadingMixIn`, not CGI and not a production web stack. | Keep it documented as a local research workbench. If live model calls become common in demos, add request timeouts, cancellation, or a small job queue before presenting it as robust UI infrastructure. |
@@ -33,7 +33,8 @@ The smallest credible v0.2.0 hardening pass should include:
 
 1. Evidence provenance records and tests.
 2. Clean acceptance benchmark cases with false-positive reporting.
-3. A documented staging contract before any write-capable tool is added.
+3. A token-efficient `PatchHunk` proposal contract plus a documented staging
+   contract before any write-capable tool is added.
 
 Everything else can remain future work until those three are in place.
 
@@ -47,7 +48,7 @@ following artifacts exist and are checked into the repository:
 | --- | --- | --- | --- |
 | G1 | Evidence provenance schema and tests | File-derived proposal evidence includes `path`, `sha256`, `tool_call_id`, and optional snippet or range hashes; negative tests reject missing or mismatched provenance. | TGA can claim auditable file-derived evidence, not merely path-scoped evidence. |
 | G2 | Clean acceptance benchmark | At least five clean in-scope tasks pass, including broad-but-scoped requests such as "all functions in this file" and "whole allowed module". False positives are reported separately from pollution rejection. | TGA can report a clean-task false-positive rate alongside rejection rate. |
-| G3 | Write-tool staging contract | If write-capable tools exist, their effects are staged and discarded on rejection, cancellation, or failed approval. If no write tools exist, the contract is documented as a precondition before adding them. | TGA can discuss write-tool safety only within the documented staging boundary. |
+| G3 | Patch preview and write-tool staging contract | Patch proposals use small scoped `PatchHunk` records and may be previewed in memory. If write-capable tools exist, their effects are staged and discarded on rejection, cancellation, or failed approval. If no write tools exist, the commit contract is documented as a precondition before adding them. | TGA can discuss token-efficient patch proposals now, and write-tool safety only within the documented staging boundary. |
 | G4 | Context carryover boundary | Cross-turn claims such as "based on the previous result" remain untrusted unless a `ContextAnchorResolver` or equivalent verifier is implemented and tested. | TGA can keep v0.2.0 scoped to disposable tasks, or explicitly claim verified context anchors if implemented. |
 | G5 | Workbench reliability boundary | Local server docs and tests cover timeout/cancellation behavior for live calls, or the UI remains labeled as a local research workbench. | TGA can avoid presenting the web client as production infrastructure. |
 
@@ -58,7 +59,7 @@ are implemented and tested in the same pass.
 ## Local v0.2.0 Progress
 
 As of the local worktree after this register update, G1 and G2 have
-implementation candidates:
+implementation candidates, and G3 has a read-only patch-preview candidate:
 
 - `EvidenceProvenance` records exist on `AgentProposal`.
 - `TaskSpec.requires_evidence_provenance` enables strict provenance mode.
@@ -80,6 +81,20 @@ implementation candidates:
   review, scroll behavior review, and multilingual guide review.
 - The current deterministic output reports `tga_polluted_accepted=0`,
   `tga_clean_accepted=5`, and `tga_clean_false_positive_rate=0.0`.
+- `PatchHunk` records allow child agents to submit small local replacement
+  proposals instead of regenerating whole files.
+- `PatchHunkConstraint` rejects patch hunks that are out of scope, missing
+  evidence, oversized, malformed, not tied to `proposed_scopes`, or carrying a
+  bad expected full-file hash.
+- `proposal_from_model_json()` strictly parses optional `patch_hunks`; malformed
+  patch entries fail parsing instead of being silently dropped.
+- `ToolContext.preview_text_patch()` performs read-only exact replacement
+  previews with optional preimage hash checks, ambiguous-anchor rejection, and
+  Python AST syntax validation for `.py` files. It returns before/after hashes
+  and does not write to disk.
+- Tests cover accepted patch hunks, traversal/scope escape, malformed model
+  patch JSON, hash mismatch, ambiguous anchors, Python syntax failure, and
+  no-write preview behavior.
 
 This is still a local 0.2.0 implementation candidate until committed, pushed,
 and included in a new release tag.

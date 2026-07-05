@@ -6,9 +6,10 @@ no file outside the whitelist can be read, and path traversal is blocked
 at the tool layer (before the constraint layer even sees the proposal).
 
 Built-in tools:
-    - ``read_file``:  Read a file within allowed scopes.
-    - ``glob``:       List files matching a pattern within allowed scopes.
-    - ``grep``:       Search file contents within allowed scopes.
+    - ``read_file``:            Read a file within allowed scopes.
+    - ``glob``:                 List files matching a pattern within allowed scopes.
+    - ``grep``:                 Search file contents within allowed scopes.
+    - ``preview_text_patch``:   Preview an exact local replacement without writing.
 
 Usage in a specialist::
 
@@ -24,6 +25,7 @@ Custom tools can be registered via :class:`ToolRegistry`.
 
 from __future__ import annotations
 
+import ast
 import fnmatch
 import hashlib
 import re
@@ -32,6 +34,9 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .records import EvidenceProvenance
+
+_MAX_PREVIEW_OLD_TEXT_BYTES = 8_192
+_MAX_PREVIEW_NEW_TEXT_BYTES = 16_384
 
 
 class ToolSecurityError(PermissionError):
@@ -62,6 +67,11 @@ def _has_traversal(path: str) -> bool:
         or ":" in first_segment
         or any(part == ".." for part in normalized.split("/"))
     )
+
+
+def _is_sha256_hex(value: str) -> bool:
+    text = str(value or "").strip()
+    return len(text) == 64 and all(char in "0123456789abcdefABCDEF" for char in text)
 
 
 def _scope_allowed(path: str, allowed_scopes: tuple[str, ...]) -> bool:
@@ -182,6 +192,125 @@ class ToolContext:
             self._log("read_file", {"path": path}, result)
             return result
 
+    def preview_text_patch(
+        self,
+        path: str,
+        old_text: str,
+        new_text: str,
+        *,
+        expected_sha256: str = "",
+    ) -> ToolResult:
+        """Preview an exact text replacement without writing to disk.
+
+        This is the deterministic half of the token-saving patch protocol:
+        child agents can propose local ``old_text``/``new_text`` hunks, while the
+        tool layer checks scope, optional preimage hash, exact-anchor uniqueness,
+        and Python syntax for ``.py`` files before any future commit stage.
+        """
+        args = {"path": path, "expected_sha256": expected_sha256}
+        try:
+            if not isinstance(old_text, str) or not isinstance(new_text, str):
+                result = ToolResult("preview_text_patch", False, error="old_text and new_text must be strings")
+                self._log("preview_text_patch", args, result)
+                return result
+            old_text_bytes = old_text.encode("utf-8", errors="replace")
+            new_text_bytes = new_text.encode("utf-8", errors="replace")
+            args.update({
+                "old_text_bytes": len(old_text_bytes),
+                "new_text_bytes": len(new_text_bytes),
+            })
+            if len(old_text_bytes) > _MAX_PREVIEW_OLD_TEXT_BYTES:
+                result = ToolResult("preview_text_patch", False, error="old_text is too large")
+                self._log("preview_text_patch", args, result)
+                return result
+            if len(new_text_bytes) > _MAX_PREVIEW_NEW_TEXT_BYTES:
+                result = ToolResult("preview_text_patch", False, error="new_text is too large")
+                self._log("preview_text_patch", args, result)
+                return result
+
+            tool_call_id = self._next_tool_call_id("preview_text_patch")
+            resolved = self._enforce_scope(path)
+            if not resolved.exists():
+                result = ToolResult("preview_text_patch", False, error=f"File not found: {path}")
+                self._log("preview_text_patch", args, result)
+                return result
+            if not resolved.is_file():
+                result = ToolResult("preview_text_patch", False, error=f"Not a file: {path}")
+                self._log("preview_text_patch", args, result)
+                return result
+            if not old_text:
+                result = ToolResult("preview_text_patch", False, error="old_text must not be empty")
+                self._log("preview_text_patch", args, result)
+                return result
+            if old_text == new_text:
+                result = ToolResult("preview_text_patch", False, error="no-op patch rejected")
+                self._log("preview_text_patch", args, result)
+                return result
+
+            raw = resolved.read_bytes()
+            sha256_before = hashlib.sha256(raw).hexdigest()
+            if expected_sha256:
+                if not _is_sha256_hex(expected_sha256):
+                    result = ToolResult("preview_text_patch", False, error="expected_sha256 is not a sha256 hex digest")
+                    self._log("preview_text_patch", args, result)
+                    return result
+                if expected_sha256 != sha256_before:
+                    result = ToolResult("preview_text_patch", False, error="expected_sha256 does not match current file")
+                    self._log("preview_text_patch", args, result)
+                    return result
+
+            original = raw.decode("utf-8", errors="replace")
+            occurrence_count = original.count(old_text)
+            if occurrence_count == 0:
+                result = ToolResult("preview_text_patch", False, error="old_text not found")
+                self._log("preview_text_patch", args, result)
+                return result
+            if occurrence_count > 1:
+                result = ToolResult("preview_text_patch", False, error="old_text is ambiguous")
+                self._log("preview_text_patch", args, result)
+                return result
+
+            patched = original.replace(old_text, new_text, 1)
+            if resolved.suffix == ".py":
+                try:
+                    ast.parse(patched)
+                except SyntaxError as exc:
+                    result = ToolResult("preview_text_patch", False, error=f"python syntax error after patch: {exc.msg}")
+                    self._log("preview_text_patch", args, result)
+                    return result
+
+            patched_bytes = patched.encode("utf-8")
+            sha256_after = hashlib.sha256(patched_bytes).hexdigest()
+            provenance = EvidenceProvenance(
+                path=_normalize_path(path),
+                sha256=sha256_before,
+                tool_call_id=tool_call_id,
+            )
+            result = ToolResult(
+                "preview_text_patch",
+                True,
+                data={
+                    "path": _normalize_path(path),
+                    "sha256_before": sha256_before,
+                    "sha256_after": sha256_after,
+                    "old_text_hash": hashlib.sha256(old_text_bytes).hexdigest(),
+                    "new_text_hash": hashlib.sha256(new_text_bytes).hexdigest(),
+                    "changed_bytes_delta": len(patched_bytes) - len(raw),
+                    "writes_disk": False,
+                },
+                provenance=provenance,
+            )
+            self._log("preview_text_patch", args, result)
+            return result
+        except ToolSecurityError as e:
+            result = ToolResult("preview_text_patch", False, error=str(e))
+            self._log("preview_text_patch", args, result)
+            return result
+        except Exception as e:
+            result = ToolResult("preview_text_patch", False, error=f"preview_text_patch failed: {e}")
+            self._log("preview_text_patch", args, result)
+            return result
+
     def glob(self, pattern: str, base_dir: str = ".") -> ToolResult:
         """List files matching a glob pattern within allowed scopes.
 
@@ -297,7 +426,7 @@ class ToolDefinition:
 class ToolRegistry:
     """Registry for custom tools that specialists can access.
 
-    Built-in tools (read_file, glob, grep) are always available via
+    Built-in tools (read_file, glob, grep, preview_text_patch) are always available via
     :class:`ToolContext`.  This registry is for *additional* tools
     that projects may want to add (e.g. ``run_test``, ``http_get``).
     """

@@ -25,7 +25,7 @@ User Input
     → Specialist (specialists.py) — BaseSpecialist.run(task)
       → ToolContext (tools.py) — scope-enforced file access
       → AgentProposal
-    → ConstraintChecker (constraints.py) — 17 deterministic checks
+    → ConstraintChecker (constraints.py) — 18 deterministic checks
     → CheckedRecord (accepted/rejected)
   → Memory extraction (memory.py) — untrusted context for future tasks
 ```
@@ -52,7 +52,7 @@ through the full TGA safety workflow:
 4. **Invalid scope check** — absolute paths and traversal are blocked before dispatch.
 5. **Task sanitization** — `MotherAgent.make_clean_task()` produces a `TaskSpec` with no raw user text. Curated memory hints may be injected into `mother_notes` (but never into `objective`).
 6. **Specialist execution** — the registry selects the best-matching specialist based on intent codes. The specialist generates one or more `AgentProposal` records.
-7. **Constraint verdict** — `ConstraintChecker` runs 17 deterministic checks. The proposal is accepted or rejected.
+7. **Constraint verdict** — `ConstraintChecker` runs 18 deterministic checks. The proposal is accepted or rejected.
 8. **Memory extraction** — objective observations (scopes, intent patterns, violation feedback) are stored for future tasks.
 
 ### Specialist Interface (specialists.py)
@@ -99,6 +99,7 @@ best match. Scoring: +2 per matching intent code, +1 per matching goal marker,
 | `read_file(path)` | Path checked against `allowed_scopes`; traversal blocked; max 512KB |
 | `glob(pattern, base_dir)` | Base dir must be in scope; each match re-verified |
 | `grep(pattern, base_dir)` | Same as glob; per-line truncation; max 50 results |
+| `preview_text_patch(path, old_text, new_text)` | In-memory exact replacement preview; hash gate; ambiguous anchors rejected; Python AST syntax check for `.py` |
 
 Every call is logged in `call_log` for audit. `ToolSecurityError` is raised on
 violations.
@@ -167,12 +168,18 @@ characters — reducing false positives on normal phrases like "所有人".
 
 ### Constraint Checker (constraints.py)
 
-17 modular checks, each implementing `Constraint.check(task, proposal) ->
+18 modular checks, each implementing `Constraint.check(task, proposal) ->
 list[str]`. Constraints can be dynamically disabled via `config.json`'s
 `disabled_constraints` field.
 
 The checker is the **only** state write gatekeeper. No proposal becomes
 accepted state without passing all enabled constraints.
+
+The patch-hunk check is part of the token-efficiency boundary: code-changing
+children may propose small `PatchHunk` records, but the checker rejects hunks
+that are out of scope, missing evidence, oversized, malformed, or not tied to
+the proposal's declared scopes. `preview_text_patch()` remains read-only; real
+write commits still require an accepted-record staging/commit layer.
 
 ## Presentation Layer
 

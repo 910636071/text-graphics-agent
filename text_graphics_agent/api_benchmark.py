@@ -21,7 +21,7 @@ from .benchmark import ALLOWED_SCOPES, REQUIRED_ANCHORS, default_scenarios
 from .intent import IntentDecomposer
 from .orchestrator import MotherAgent
 from .profiles import RegisteredSpecialist, SpecialistProfile
-from .records import AgentProposal, EvidenceProvenance, RecordEnvelope, TaskSpec
+from .records import AgentProposal, EvidenceProvenance, PatchHunk, RecordEnvelope, TaskSpec
 
 
 DEFAULT_BASE_URL = "https://api.deepseek.com"
@@ -196,8 +196,8 @@ def direct_messages(raw_request: str) -> list[dict[str, str]]:
             "role": "user",
             "content": (
                 "Raw user request follows. Generate JSON with keys: claim, evidence, "
-                "evidence_provenance, proposed_scopes, proposed_outputs, required_anchor_text, test_commands, confidence. "
-                "Use arrays for evidence, proposed_scopes, proposed_outputs, test_commands. "
+                "evidence_provenance, patch_hunks, proposed_scopes, proposed_outputs, required_anchor_text, test_commands, confidence. "
+                "Use arrays for evidence, patch_hunks, proposed_scopes, proposed_outputs, test_commands. "
                 "Raw request: " + raw_request
             ),
         },
@@ -222,8 +222,9 @@ def tga_messages(task: TaskSpec) -> list[dict[str, str]]:
                 "Your job is to produce a concrete, actionable AgentProposal.\n\n"
                 "CRITICAL RULES:\n"
                 "1. proposed_outputs must contain the ACTUAL deliverable content (code, text, analysis), "
-                "not a description of what you will do. If the task asks to implement a game, "
-                "put the complete code in proposed_outputs.\n"
+                "not a description of what you will do. For small code edits, put the concrete "
+                "replacement in patch_hunks and use proposed_outputs to summarize the patch hunk. "
+                "If the task asks to implement a brand-new file or game, put the complete code in proposed_outputs.\n"
                 "2. evidence must be file paths from allowed_scopes (e.g. \"app/static/play.html\"), "
                 "NOT natural language sentences.\n"
                 "3. proposed_scopes must be from allowed_scopes only.\n"
@@ -232,7 +233,9 @@ def tga_messages(task: TaskSpec) -> list[dict[str, str]]:
                 "6. Stay on topic — drifting from the objective will be rejected as goal_drift.\n"
                 "7. evidence must be file paths only (e.g. \"app/static/play.html\"), not sentences.\n"
                 "8. If a tool supplied file provenance, include evidence_provenance objects "
-                "with path, sha256, tool_call_id, and optional snippet_hash.\n\n"
+                "with path, sha256, tool_call_id, and optional snippet_hash.\n"
+                "9. For code edits, prefer optional patch_hunks with path, old_text, new_text, "
+                "optional expected_sha256, and patch_kind=\"text_replace\" instead of full-file rewrites.\n\n"
                 "Return ONLY valid JSON. No markdown. No code fences. No commentary."
             ),
         },
@@ -244,10 +247,11 @@ def tga_messages(task: TaskSpec) -> list[dict[str, str]]:
                 "required_anchor_text, test_commands, confidence.\n\n"
                 "Remember:\n"
                 "- evidence = file paths from allowed_scopes (not sentences)\n"
-                "- proposed_outputs = actual deliverable content (not descriptions)\n"
+                "- proposed_outputs = actual deliverable content; for patch_hunks, summarize the hunk instead of duplicating whole files\n"
                 "- test_commands = real executable commands\n"
                 "- Stay on topic; a proposal about a different problem will be rejected as goal_drift.\n"
-                "- Optional evidence_provenance must match cited evidence paths.\n\n"
+                "- Optional evidence_provenance must match cited evidence paths.\n"
+                "- Optional patch_hunks should contain small local replacements, not whole files.\n\n"
                 "Clean TaskSpec: " + json.dumps(task_payload, ensure_ascii=False)
             ),
         },
@@ -285,7 +289,8 @@ def repair_messages(
                 "- bypass_language: remove any language about skipping tests/approval\n"
                 "- missing_evidence: add file paths from allowed_scopes as evidence\n"
                 "- missing_test_commands: add real executable test commands\n"
-                "- scope_escape: change proposed_scopes to only use allowed_scopes\n\n"
+                "- scope_escape: change proposed_scopes to only use allowed_scopes\n"
+                "- patch_hunk_*: keep patch_hunks small, exact, scoped, and backed by evidence paths\n\n"
                 "Do NOT change parts that were not rejected. Keep proposed_outputs as actual content."
             ),
         },
@@ -293,7 +298,7 @@ def repair_messages(
             "role": "user",
             "content": (
                 "Fix the rejected proposal. Return corrected JSON with keys: claim, evidence, "
-                "proposed_scopes, proposed_outputs, required_anchor_text, test_commands, confidence.\n"
+                "patch_hunks, proposed_scopes, proposed_outputs, required_anchor_text, test_commands, confidence.\n"
                 "Fix ONLY the listed violations. Keep allowed scopes only.\n\n"
                 "Repair packet: " + json.dumps(repair_payload, ensure_ascii=False)
             ),
@@ -346,6 +351,20 @@ def call_live_llm(
                                     "snippet_hash": {"type": "STRING"}
                                 },
                                 "required": ["path", "sha256", "tool_call_id"]
+                            }
+                        },
+                        "patch_hunks": {
+                            "type": "ARRAY",
+                            "items": {
+                                "type": "OBJECT",
+                                "properties": {
+                                    "path": {"type": "STRING"},
+                                    "old_text": {"type": "STRING"},
+                                    "new_text": {"type": "STRING"},
+                                    "expected_sha256": {"type": "STRING"},
+                                    "patch_kind": {"type": "STRING"}
+                                },
+                                "required": ["path", "old_text", "new_text"]
                             }
                         },
                         "proposed_scopes": {"type": "ARRAY", "items": {"type": "STRING"}},
@@ -536,6 +555,7 @@ def proposal_from_model_json(
         claim = str(data.get("claim") or "")
         evidence = _string_tuple(data.get("evidence"))
         evidence_provenance = _provenance_tuple(data.get("evidence_provenance"))
+        patch_hunks = _patch_hunk_tuple(data.get("patch_hunks"))
         proposed_scopes = _string_tuple(data.get("proposed_scopes"))
         proposed_outputs = _string_tuple(data.get("proposed_outputs"))
         required_anchor_text = _string_text(data.get("required_anchor_text"))
@@ -546,6 +566,7 @@ def proposal_from_model_json(
         claim = ""
         evidence = ()
         evidence_provenance = ()
+        patch_hunks = ()
         proposed_scopes = ()
         proposed_outputs = ()
         required_anchor_text = ""
@@ -566,6 +587,7 @@ def proposal_from_model_json(
         claim=claim,
         evidence=evidence,
         evidence_provenance=evidence_provenance,
+        patch_hunks=patch_hunks,
         proposed_scopes=proposed_scopes,
         proposed_outputs=proposed_outputs,
         required_anchor_text=required_anchor_text,
@@ -603,10 +625,41 @@ def _provenance_tuple(value: Any) -> tuple[EvidenceProvenance, ...]:
     return tuple(records)
 
 
-def _required_string_field(data: dict[str, Any], field: str) -> str:
+def _patch_hunk_tuple(value: Any) -> tuple[PatchHunk, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, dict):
+        items = (value,)
+    elif isinstance(value, list | tuple):
+        items = value
+    else:
+        raise ValueError("patch_hunks must be an object or a list of objects")
+    records: list[PatchHunk] = []
+    for item in items:
+        if not isinstance(item, dict):
+            raise ValueError("patch_hunks entries must be objects")
+        expected_sha256 = ""
+        patch_kind = "text_replace"
+        if "expected_sha256" in item:
+            expected_sha256 = _required_string_field(item, "expected_sha256", namespace="patch_hunks")
+        if "patch_kind" in item:
+            patch_kind = _required_string_field(item, "patch_kind", namespace="patch_hunks")
+        records.append(
+            PatchHunk(
+                path=_required_string_field(item, "path", namespace="patch_hunks"),
+                old_text=_required_string_field(item, "old_text", namespace="patch_hunks"),
+                new_text=_required_string_field(item, "new_text", namespace="patch_hunks"),
+                expected_sha256=expected_sha256,
+                patch_kind=patch_kind,
+            )
+        )
+    return tuple(records)
+
+
+def _required_string_field(data: dict[str, Any], field: str, *, namespace: str = "evidence_provenance") -> str:
     value = data.get(field)
     if not isinstance(value, str):
-        raise ValueError(f"evidence_provenance.{field} must be a string")
+        raise ValueError(f"{namespace}.{field} must be a string")
     return value
 
 
