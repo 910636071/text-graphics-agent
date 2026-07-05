@@ -2,7 +2,19 @@
 
 Chinese index: [中文文档索引](./README.zh-CN.md).
 
-Start here:
+## Reading Paths
+
+| Reader | Start with | Then read |
+|--------|------------|-----------|
+| First-time user | [Operation Guide](./operation_guide.md) | [Examples](../examples/README.md), [Test Reports](./test_reports/README.md) |
+| Engineer | [Architecture](./architecture.md) | [Implementation Risk Register](./implementation_risk_register_20260704.md) |
+| Research reviewer | [Paper Draft](./paper_draft.md) | [Citation Audit](./citation_audit_20260704.md), [Public Provenance Artifacts](./provenance_artifacts_20260704.md) |
+| Public release reviewer | [Packaging](./packaging.md) | [Public Launch Checklist](./public_launch_checklist.md), [Submission Prep](./submission_prep.md) |
+
+TGA's public claim is intentionally narrow: it demonstrates a protocol boundary
+for disposable child-agent workflows, not a universal safety guarantee.
+
+## Document Index
 
 - [Architecture](./architecture.md) / [中文](./architecture.zh-CN.md): system boundary and record flow.
 - [Paper Draft](./paper_draft.md) / [中文](./paper_draft.zh-CN.md): research-paper style argument.

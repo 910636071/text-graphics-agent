@@ -20,9 +20,40 @@
   <img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white">
   <img alt="stdlib only" src="https://img.shields.io/badge/runtime-stdlib_only-0B1020?style=flat-square">
   <img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square">
+  <img alt="status" src="https://img.shields.io/badge/status-research_alpha-f59e0b?style=flat-square">
 </p>
 
 ---
+
+## Project Snapshot
+
+**Text Graphics Agent (TGA)** is a local, zero-dependency research prototype for
+agent workflows where models propose work, but deterministic records decide what
+becomes trusted state.
+
+| Layer | What it does | Public boundary |
+|-------|--------------|-----------------|
+| Mother agent | Turns raw user intent into a scoped `TaskSpec` | User text is not task authority until stabilized |
+| Disposable child agents | Produce `AgentProposal` objects | Children cannot commit state directly |
+| Constraint checker | Applies 18 deterministic checks | Accepted state must pass explicit gates |
+| Human approval | Stops risky transitions | High-risk work remains inspectable |
+
+**Try it locally:**
+
+```bash
+python -m text_graphics_agent.gui
+# open http://127.0.0.1:8012
+```
+
+**Run the safety regression suite:**
+
+```bash
+python tests/text_graphics_agent_test.py
+```
+
+TGA is a research artifact, not a hosted agent service. It demonstrates a
+protocol boundary for safer agent work; it does not claim AGI, universal
+hallucination resistance, or universal prompt-injection prevention.
 
 ## What is TGA?
 

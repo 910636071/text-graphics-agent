@@ -20,9 +20,38 @@
   <img alt="Python" src="https://img.shields.io/badge/python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white">
   <img alt="stdlib only" src="https://img.shields.io/badge/runtime-纯标准库-0B1020?style=flat-square">
   <img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square">
+  <img alt="status" src="https://img.shields.io/badge/status-research_alpha-f59e0b?style=flat-square">
 </p>
 
 ---
+
+## 项目速览
+
+**Text Graphics Agent (TGA)** 是一个本地、零依赖的 agent 工作流研究原型：
+模型可以提出工作结果，但最终由确定性记录和约束检查决定什么能成为可信状态。
+
+| 层级 | 作用 | 公开边界 |
+|------|------|----------|
+| 母 Agent | 将原始用户意图转换为带范围的 `TaskSpec` | 用户原话在稳定化前不是任务权威 |
+| 一次性子 Agent | 生成 `AgentProposal` | 子 Agent 不能直接提交状态 |
+| 约束检查器 | 执行 18 条确定性检查 | 被接受状态必须通过显式关卡 |
+| 人类审批 | 阻断高风险转换 | 高风险工作保持可检查 |
+
+**本地试用：**
+
+```bash
+python -m text_graphics_agent.gui
+# 打开 http://127.0.0.1:8012
+```
+
+**运行安全回归测试：**
+
+```bash
+python tests/text_graphics_agent_test.py
+```
+
+TGA 是研究 artifact，不是托管 agent 服务。它展示的是一种更安全的 agent
+协议边界；不声称 AGI、不声称通用抗幻觉，也不声称能防住所有 prompt injection。
 
 ## TGA 是什么？
 

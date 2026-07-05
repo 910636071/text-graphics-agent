@@ -1,6 +1,17 @@
 # 中文文档索引
 
-从这里开始读：
+## 阅读路径
+
+| 读者 | 先读 | 再读 |
+|------|------|------|
+| 第一次使用 | [操作指南](./operation_guide.zh-CN.md) | [示例说明](../examples/README.zh-CN.md)、[测试报告](./test_reports/README.zh-CN.md) |
+| 工程实现 | [架构说明](./architecture.zh-CN.md) | [v0.2.0 实现风险登记](./implementation_risk_register_20260704.zh-CN.md) |
+| 研究审查 | [论文草稿](./paper_draft.zh-CN.md) | [引用与相似性审计](./citation_audit_20260704.zh-CN.md)、[公开来源 artifact 记录](./provenance_artifacts_20260704.zh-CN.md) |
+| 公开发布 | [公开包装](./packaging.zh-CN.md) | [公开发布清单](./public_launch_checklist.zh-CN.md)、[投稿准备](./submission_prep.zh-CN.md) |
+
+TGA 的公开主张刻意保持窄边界：它展示的是一次性子 Agent 工作流的协议边界，不是通用安全保证。
+
+## 文档清单
 
 - [架构说明](./architecture.zh-CN.md)：系统边界、记录流和约束族。
 - [论文草稿](./paper_draft.zh-CN.md)：论文风格的核心论证。
